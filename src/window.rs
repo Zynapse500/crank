@@ -1,7 +1,4 @@
 use gfx;
-// use gfx::traits::FactoryExt;
-use gfx::Device;
-
 use gfx_window_glutin as gfx_glutin;
 
 use glutin;
@@ -10,18 +7,19 @@ use glutin::Api::OpenGl;
 
 use time;
 
+use renderer::Renderer;
+use renderer::RenderFrame;
 
 pub type ColorFormat = gfx::format::Srgba8;
 pub type DepthFormat = gfx::format::DepthStencil;
-
-const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 pub trait WindowHandler {
 
     /// Main Loop
     fn init(&mut self);
     fn update(&mut self, delta_time: f32);
-    // fn render(&mut self, renderer: Renderer);
+
+    fn render(&mut self, frame: &mut RenderFrame);
 
     /// Events
     fn resized(&mut self, width: u32, height: u32) {}
@@ -35,7 +33,6 @@ pub trait WindowHandler {
     /// State
     fn is_running(&self) -> bool;
 }
-
 
 
 pub struct WindowSettings {
@@ -61,8 +58,6 @@ impl Default for WindowSettings {
 }
 
 
-
-
 pub fn open_window<W: WindowHandler>(settings: WindowSettings, window_handler: &mut W) {
     let mut events_loop = glutin::EventsLoop::new();
 
@@ -74,8 +69,12 @@ pub fn open_window<W: WindowHandler>(settings: WindowSettings, window_handler: &
         .with_gl(GlRequest::Specific(OpenGl,(3,2)))
         .with_vsync(settings.vertical_sync);
 
-    let (window, mut device, mut factory, color_view, mut depth_view) =
+    let (window, device, factory, color_view, depth_view) =
         gfx_glutin::init::<ColorFormat, DepthFormat>(window_builder, context_builder, &events_loop);
+
+
+    // Create renderer
+    let mut renderer= Renderer::new(device, factory, color_view, depth_view);
 
 
     // Setup handler
@@ -109,10 +108,15 @@ pub fn open_window<W: WindowHandler>(settings: WindowSettings, window_handler: &
         previous_frame_time = current_time;
 
         window_handler.update(delta_time);
-        // window_handler.render(renderer);
+
+        // Get the next frame and render to it
+        let mut frame = renderer.get_new_frame();
+        window_handler.render(&mut frame);
+        renderer.draw(frame);
 
         window.swap_buffers().unwrap();
-        device.cleanup();
+
+        renderer.clean();
     }
 }
 

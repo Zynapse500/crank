@@ -1,6 +1,7 @@
 
 #[macro_use]
 extern crate gfx;
+extern crate gfx_device_gl;
 
 extern crate gfx_window_glutin;
 extern crate glutin;
@@ -8,10 +9,15 @@ extern crate glutin;
 extern crate time;
 
 pub mod window;
+pub mod renderer;
+
 
 #[cfg(test)]
 mod tests {
+
     use window;
+    use renderer;
+
     use glutin;
 
     #[test]
@@ -43,7 +49,11 @@ mod tests {
             }
 
             fn update(&mut self, dt: f32) {
-                println!("Delta: {}", dt);
+                // println!("Delta: {}", dt);
+            }
+
+            fn render(&mut self, frame: &mut renderer::RenderFrame) {
+                // frame.draw_polygon()
             }
 
             //////////////////////////////////////
@@ -72,15 +82,11 @@ mod tests {
                 println!("Released: {:?}", button);
             }
 
-
-
             fn resized(&mut self, width: u32, height: u32) {
                 println!("Resized: ({}, {})", width, height);
             }
 
-            fn closed(&mut self) {
-                println!("Closed!");
-            }
+            fn closed(&mut self) { println!("Closed!"); }
 
 
             //////////////////////////////////////
