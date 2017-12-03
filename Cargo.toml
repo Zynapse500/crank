@@ -1,0 +1,6 @@
+[package]
+name = "locus_engine"
+version = "0.1.0"
+authors = ["Christofer Nolander <christofer.nolander@gmail.com>"]
+
+[dependencies]
