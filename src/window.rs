@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use gfx;
 use gfx_window_glutin as gfx_glutin;
 
@@ -8,10 +10,15 @@ use glutin::Api::OpenGl;
 use time;
 
 use renderer::Renderer;
-use renderer::RenderFrame;
+use renderer::frame::RenderFrame;
 
-pub type ColorFormat = gfx::format::Srgba8;
+pub type ColorFormat = gfx::format::Rgba8;
 pub type DepthFormat = gfx::format::DepthStencil;
+
+
+pub use glutin::VirtualKeyCode as KeyCode;
+pub use glutin::MouseButton as MouseButton;
+
 
 pub trait WindowHandler {
 
@@ -23,10 +30,10 @@ pub trait WindowHandler {
 
     /// Events
     fn resized(&mut self, width: u32, height: u32) {}
-    fn key_pressed(&mut self, key: glutin::VirtualKeyCode) {}
-    fn key_released(&mut self, key: glutin::VirtualKeyCode) {}
-    fn mouse_pressed(&mut self, button: glutin::MouseButton) {}
-    fn mouse_released(&mut self, button: glutin::MouseButton) {}
+    fn key_pressed(&mut self, key: KeyCode) {}
+    fn key_released(&mut self, key: KeyCode) {}
+    fn mouse_pressed(&mut self, button: MouseButton) {}
+    fn mouse_released(&mut self, button: MouseButton) {}
 
     fn closed(&mut self) {}
 
@@ -41,7 +48,8 @@ pub struct WindowSettings {
 
     pub title: String,
 
-    pub vertical_sync: bool
+    pub vertical_sync: bool,
+    pub samples: u16,
 }
 
 impl Default for WindowSettings {
@@ -52,7 +60,8 @@ impl Default for WindowSettings {
 
             title: "Locus".to_owned(),
 
-            vertical_sync: true
+            vertical_sync: true,
+            samples: 8
         }
     }
 }
@@ -67,11 +76,12 @@ pub fn open_window<W: WindowHandler>(settings: WindowSettings, window_handler: &
 
     let context_builder = glutin::ContextBuilder::new()
         .with_gl(GlRequest::Specific(OpenGl,(3,2)))
+        .with_multisampling(settings.samples)
         .with_vsync(settings.vertical_sync);
+
 
     let (window, device, factory, color_view, depth_view) =
         gfx_glutin::init::<ColorFormat, DepthFormat>(window_builder, context_builder, &events_loop);
-
 
     // Create renderer
     let mut renderer= Renderer::new(device, factory, color_view, depth_view);
@@ -84,6 +94,9 @@ pub fn open_window<W: WindowHandler>(settings: WindowSettings, window_handler: &
     // The time point of the last frame
     let mut previous_frame_time = time::precise_time_ns();
 
+    // State of events
+    let mut event_state = EventState::new();
+
     // Main loop
     'main:loop {
         if !window_handler.is_running() { break 'main; }
@@ -91,11 +104,16 @@ pub fn open_window<W: WindowHandler>(settings: WindowSettings, window_handler: &
         // Handle events
         let events = get_events(&mut events_loop);
         for event in events {
-            if let Some(action) = handle_event(window_handler, event) {
+            if let Some(action) = handle_event(window_handler, event, &mut event_state) {
                 match action {
                     EventAction::Close => {
                         window_handler.closed();
                         break 'main;
+                    },
+
+                    // Resize viewport to fit window
+                    EventAction::Rezise(w, h) => {
+                        renderer.set_viewport(&window,w, h);
                     }
                 }
             }
@@ -133,10 +151,25 @@ fn get_events(events_loop: &mut glutin::EventsLoop) -> Vec<glutin::Event> {
 
 
 enum EventAction {
-    Close
+    Close,
+    Rezise(u32, u32)
 }
 
-fn handle_event<W: WindowHandler>(window_handler: &mut W, event: glutin::Event) -> Option<EventAction> {
+struct EventState {
+    /// Filter out repeated key presses
+    pub pressed_keys: HashSet<KeyCode>
+}
+
+impl EventState {
+    pub fn new() -> Self {
+        EventState {
+            pressed_keys: HashSet::new(),
+        }
+    }
+}
+
+
+fn handle_event<W: WindowHandler>(window_handler: &mut W, event: glutin::Event, event_state: &mut EventState) -> Option<EventAction> {
     match event {
         glutin::Event::WindowEvent {event, ..} => {
             match event {
@@ -146,8 +179,16 @@ fn handle_event<W: WindowHandler>(window_handler: &mut W, event: glutin::Event) 
                     }, .. } =>
                 {
                     match state {
-                        glutin::ElementState::Pressed => window_handler.key_pressed(key),
-                        glutin::ElementState::Released => window_handler.key_released(key),
+                        glutin::ElementState::Pressed => {
+                            if !event_state.pressed_keys.contains(&key) {
+                                window_handler.key_pressed(key);
+                                event_state.pressed_keys.insert(key);
+                            }
+                        },
+                        glutin::ElementState::Released => {
+                            window_handler.key_released(key);
+                            event_state.pressed_keys.remove(&key);
+                        },
                     }
                 }
 
@@ -163,6 +204,7 @@ fn handle_event<W: WindowHandler>(window_handler: &mut W, event: glutin::Event) 
                 // Window resize
                 glutin::WindowEvent::Resized(width, height) => {
                     window_handler.resized(width, height);
+                    return Some(EventAction::Rezise(width, height));
                 }
 
                 // Window close

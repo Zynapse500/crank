@@ -5,7 +5,13 @@ use gfx::traits::FactoryExt;
 use gfx_device_gl;
 use gfx_device_gl::Factory;
 
+use glutin;
+use gfx_window_glutin;
+
 use window;
+
+pub mod frame;
+use self::frame::RenderFrame;
 
 gfx_defines!{
     vertex Vertex {
@@ -23,6 +29,7 @@ gfx_defines!{
         out: gfx::RenderTarget<window::ColorFormat> = "Target0",
     }
 }
+
 
 
 type R = gfx_device_gl::Resources;
@@ -44,11 +51,7 @@ impl Renderer {
                color_view: gfx::handle::RenderTargetView<R, window::ColorFormat>,
                depth_view: gfx::handle::DepthStencilView<R, window::DepthFormat>) -> Self {
 
-        let pso = factory.create_pipeline_simple(
-            include_bytes!("shaders/shader.vert"),
-            include_bytes!("shaders/shader.frag"),
-            pipe::new()
-        ).unwrap();
+        let pso = Renderer::create_pipeline(&mut factory);
 
         let encoder: gfx::Encoder<_, _> = factory.create_command_buffer().into();
 
@@ -63,18 +66,39 @@ impl Renderer {
         }
     }
 
+
+    /// Creates a new pipeline object
+    fn create_pipeline(factory: &mut Factory) -> gfx::pso::PipelineState<R, pipe::Meta> {
+        let set = factory.create_shader_set(
+            include_bytes!("shaders/shader.vert"),
+            include_bytes!("shaders/shader.frag")
+        ).unwrap();
+
+        factory.create_pipeline_state(
+            &set,
+            gfx::Primitive::TriangleList,
+            gfx::state::Rasterizer{
+                samples: Some(gfx::state::MultiSample{}),
+                ..gfx::state::Rasterizer::new_fill()
+            },
+            pipe::new()
+        ).unwrap()
+    }
+
+
     /// Create a new frame to render to
     pub fn get_new_frame(&mut self) -> RenderFrame {
-        RenderFrame {}
+        RenderFrame::new()
     }
 
     /// Renders a frame
-    pub fn draw(&mut self, frame: RenderFrame) {
-        const TRIANGLE: [Vertex; 3] = [
-            Vertex { pos: [ -0.5, -0.5, 0.0, 1.0 ], color: [1.0, 0.0, 0.0, 1.0] },
-            Vertex { pos: [  0.5, -0.5, 0.0, 1.0 ], color: [0.0, 1.0, 0.0, 1.0] },
-            Vertex { pos: [  0.0,  0.5, 0.0, 1.0 ], color: [0.0, 0.0, 1.0, 1.0] },
-        ];
+    pub fn draw(&mut self, mut frame: RenderFrame) {
+
+        let mut vertices: Vec<Vertex> = Vec::new();
+        for mut shape in frame.shapes.drain(..) {
+            vertices.extend(shape.drain(..));
+        }
+
         //Identity Matrix
         const TRANSFORM: Transform = Transform {
             transform:
@@ -84,7 +108,7 @@ impl Renderer {
                  [0.0, 0.0, 0.0, 1.0]]
         };
 
-        let (vertex_buffer, slice) = self.factory.create_vertex_buffer_with_slice(&TRIANGLE, ());
+        let (vertex_buffer, slice) = self.factory.create_vertex_buffer_with_slice(&vertices, ());
         let transform_buffer = self.factory.create_constant_buffer(1);
         let data = pipe::Data {
             vbuf: vertex_buffer,
@@ -99,12 +123,15 @@ impl Renderer {
     }
 
 
+    /// Clears all leftover rendering data
     pub fn clean(&mut self) {
         self.device.cleanup();
     }
+
+
+    /// Sets the viewport
+    pub fn set_viewport(&mut self, window: &glutin::GlWindow, width: u32, height: u32) {
+        gfx_window_glutin::update_views(window, &mut self.color_view, &mut self.depth_view);
+    }
 }
 
-
-pub struct RenderFrame {
-
-}
