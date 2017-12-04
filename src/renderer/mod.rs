@@ -93,10 +93,15 @@ impl Renderer {
 
     /// Renders a frame
     pub fn draw(&mut self, mut frame: RenderFrame) {
+        let mut vertices = Vec::new();
+        let mut indices: Vec<u32> = Vec::new();
 
-        let mut vertices: Vec<Vertex> = Vec::new();
-        for mut shape in frame.shapes.drain(..) {
-            vertices.extend(shape.drain(..));
+        for shape in frame.shapes.into_iter() {
+            // No supplied indices
+            let index_start = vertices.len() as u32;
+            let index_range = (index_start..index_start + shape.len() as u32);
+            indices.extend(index_range.into_iter());
+            vertices.extend(shape.into_iter());
         }
 
         //Identity Matrix
@@ -108,7 +113,7 @@ impl Renderer {
                  [0.0, 0.0, 0.0, 1.0]]
         };
 
-        let (vertex_buffer, slice) = self.factory.create_vertex_buffer_with_slice(&vertices, ());
+        let (vertex_buffer, slice) = self.factory.create_vertex_buffer_with_slice(&vertices, indices.as_slice());
         let transform_buffer = self.factory.create_constant_buffer(1);
         let data = pipe::Data {
             vbuf: vertex_buffer,
