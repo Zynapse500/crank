@@ -8,8 +8,12 @@ extern crate glutin;
 
 extern crate time;
 
+pub mod linear;
+
 pub mod window;
 pub mod renderer;
+
+#[path = "test_app/app.rs"]
 pub mod app;
 
 
@@ -17,11 +21,7 @@ pub mod app;
 mod tests {
 
     use window;
-    use renderer;
-
     use app;
-
-    use glutin;
 
     #[test]
     fn hello_triangle() {
@@ -29,6 +29,7 @@ mod tests {
 
         let mut settings = window::WindowSettings::default();
         settings.title = "Hello, Triangle!".to_owned();
+        settings.vertical_sync = false;
 
         let mut app = app::App::new();
         window::open_window(settings, &mut app);

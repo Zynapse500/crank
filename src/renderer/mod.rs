@@ -13,6 +13,11 @@ use window;
 pub mod frame;
 use self::frame::RenderFrame;
 
+mod shape;
+
+pub mod camera;
+
+
 gfx_defines!{
     vertex Vertex {
         pos: [f32; 4] = "a_Pos",
@@ -67,6 +72,49 @@ impl Renderer {
     }
 
 
+    /// Renders a frame
+    pub fn draw(&mut self, frame: RenderFrame) {
+        let mut vertices = Vec::new();
+        let mut indices = Vec::new();
+
+        self.encoder.clear(&self.color_view, [0.0, 0.0, 0.0, 0.0]); //clear the framebuffer with a color(color needs to be an array of 4 f32s, RGBa)
+        for camera_state in frame.cameras.into_iter() {
+            vertices.clear();
+            indices.clear();
+
+            for index in camera_state.get_shapes() {
+                let shape = &frame.shapes[index as usize];
+                let start_index = vertices.len() as u32;
+                let new_indices = shape.indices.iter().map(|index| index + start_index);
+
+                indices.extend(new_indices);
+                vertices.extend(shape.vertices.iter());
+            }
+
+
+            // No need to render nothing
+            if vertices.len() > 0 {
+                // Camera Matrix
+                let transform: Transform = Transform { transform: camera_state.get_transform() };
+
+                let (vertex_buffer, slice) = self.factory.create_vertex_buffer_with_slice(&vertices, indices.as_slice());
+                let transform_buffer = self.factory.create_constant_buffer(1);
+                let data = pipe::Data {
+                    vbuf: vertex_buffer,
+                    transform: transform_buffer,
+                    out: self.color_view.clone(),
+                };
+
+                self.encoder.update_buffer(&data.transform, &[transform], 0).unwrap(); //update buffers
+                self.encoder.draw(&slice, &self.pso, &data); // draw commands with buffer data and attached pso
+            }
+
+        }
+
+        self.encoder.flush(&mut self.device); // execute draw commands
+    }
+
+
     /// Creates a new pipeline object
     fn create_pipeline(factory: &mut Factory) -> gfx::pso::PipelineState<R, pipe::Meta> {
         let set = factory.create_shader_set(
@@ -85,46 +133,9 @@ impl Renderer {
         ).unwrap()
     }
 
-
     /// Create a new frame to render to
     pub fn get_new_frame(&mut self) -> RenderFrame {
         RenderFrame::new()
-    }
-
-    /// Renders a frame
-    pub fn draw(&mut self, mut frame: RenderFrame) {
-        let mut vertices = Vec::new();
-        let mut indices: Vec<u32> = Vec::new();
-
-        for shape in frame.shapes.into_iter() {
-            // No supplied indices
-            let index_start = vertices.len() as u32;
-            let index_range = (index_start..index_start + shape.len() as u32);
-            indices.extend(index_range.into_iter());
-            vertices.extend(shape.into_iter());
-        }
-
-        //Identity Matrix
-        const TRANSFORM: Transform = Transform {
-            transform:
-                [[1.0, 0.0, 0.0, 0.0],
-                 [0.0, 1.0, 0.0, 0.0],
-                 [0.0, 0.0, 1.0, 0.0],
-                 [0.0, 0.0, 0.0, 1.0]]
-        };
-
-        let (vertex_buffer, slice) = self.factory.create_vertex_buffer_with_slice(&vertices, indices.as_slice());
-        let transform_buffer = self.factory.create_constant_buffer(1);
-        let data = pipe::Data {
-            vbuf: vertex_buffer,
-            transform: transform_buffer,
-            out: self.color_view.clone(),
-        };
-
-        self.encoder.clear(&self.color_view, [0.0, 0.0, 0.0, 0.0]); //clear the framebuffer with a color(color needs to be an array of 4 f32s, RGBa)
-        self.encoder.update_buffer(&data.transform, &[TRANSFORM], 0).unwrap(); //update buffers
-        self.encoder.draw(&slice, &self.pso, &data); // draw commands with buffer data and attached pso
-        self.encoder.flush(&mut self.device); // execute draw commands
     }
 
 
@@ -135,7 +146,7 @@ impl Renderer {
 
 
     /// Sets the viewport
-    pub fn set_viewport(&mut self, window: &glutin::GlWindow, width: u32, height: u32) {
+    pub fn set_viewport(&mut self, window: &glutin::GlWindow) {
         gfx_window_glutin::update_views(window, &mut self.color_view, &mut self.depth_view);
     }
 }

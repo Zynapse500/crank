@@ -10,7 +10,7 @@ use glutin::Api::OpenGl;
 use time;
 
 use renderer::Renderer;
-use renderer::frame::RenderFrame;
+pub use renderer::frame::RenderFrame;
 
 pub type ColorFormat = gfx::format::Rgba8;
 pub type DepthFormat = gfx::format::DepthStencil;
@@ -29,11 +29,11 @@ pub trait WindowHandler {
     fn render(&mut self, frame: &mut RenderFrame);
 
     /// Events
-    fn resized(&mut self, width: u32, height: u32) {}
-    fn key_pressed(&mut self, key: KeyCode) {}
-    fn key_released(&mut self, key: KeyCode) {}
-    fn mouse_pressed(&mut self, button: MouseButton) {}
-    fn mouse_released(&mut self, button: MouseButton) {}
+    fn resized(&mut self, _width: u32, _height: u32) {}
+    fn key_pressed(&mut self, _key: KeyCode) {}
+    fn key_released(&mut self, _key: KeyCode) {}
+    fn mouse_pressed(&mut self, _button: MouseButton) {}
+    fn mouse_released(&mut self, _button: MouseButton) {}
 
     fn closed(&mut self) {}
 
@@ -112,8 +112,8 @@ pub fn open_window<W: WindowHandler>(settings: WindowSettings, window_handler: &
                     },
 
                     // Resize viewport to fit window
-                    EventAction::Rezise(w, h) => {
-                        renderer.set_viewport(&window,w, h);
+                    EventAction::Rezise(_, _) => {
+                        renderer.set_viewport(&window);
                     }
                 }
             }
