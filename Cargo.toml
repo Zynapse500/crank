@@ -11,3 +11,5 @@ gfx_window_glutin = "0.18.0"
 gfx_device_gl = "0.14.4"
 
 time = "0.1"
+
+cgmath = "0.15.0"

@@ -7,8 +7,9 @@ extern crate gfx_window_glutin;
 extern crate glutin;
 
 extern crate time;
+extern crate cgmath;
 
-pub mod linear;
+// pub mod linear;
 
 pub mod window;
 pub mod renderer;

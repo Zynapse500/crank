@@ -2,7 +2,9 @@
 use window;
 use window::{KeyCode, RenderFrame};
 
-use renderer::camera::OrthographicCamera;
+use renderer::camera::{Camera, OrthographicCamera};
+
+use cgmath::Vector3;
 
 pub struct App {
     window: WindowState,
@@ -23,7 +25,7 @@ impl App {
             colors: vec![[1.0, 0.1, 0.1, 1.0], [0.1, 1.0, 0.1, 1.0], [0.1, 0.1, 1.0, 1.0]],
 
             rotate_timer: Timer::new(0.2, true),
-            frame_rate_counter: FrameCounter::new(0.5),
+            frame_rate_counter: FrameCounter::new(1.0),
 
             camera: OrthographicCamera::default(),
         }
@@ -42,6 +44,8 @@ impl window::WindowHandler for App {
     }
 
     fn update(&mut self, dt: f32) {
+        self.window.elapsed_time += dt;
+
         if let Some(fps) = self.frame_rate_counter.update(dt) {
             println!("FPS: {}", fps.round());
         }
@@ -49,6 +53,10 @@ impl window::WindowHandler for App {
         if let Some(_) = self.rotate_timer.update(dt) {
             self.rotate_colors();
         }
+
+
+        let (x, y) = self.window.elapsed_time.sin_cos();
+        self.camera.set_position(Vector3::new(64.0 * x, 64.0 * y, 0.0));
     }
 
     fn render(&mut self, frame: &mut RenderFrame) {
@@ -211,6 +219,8 @@ struct WindowState {
     pub open: bool,
     pub width: u32,
     pub height: u32,
+
+    pub elapsed_time: f32
 }
 
 impl Default for WindowState {
@@ -219,6 +229,8 @@ impl Default for WindowState {
             open: true,
             width: 0,
             height: 0,
+
+            elapsed_time: 0.0
         }
     }
 }

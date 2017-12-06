@@ -121,7 +121,7 @@ impl CameraState {
 
 
     pub fn get_transform(&self) -> [[f32; 4]; 4] {
-        self.camera.get_transform()
+        self.camera.get_transform().into()
     }
 
     pub fn get_shapes(&self) -> Range<u32> {
