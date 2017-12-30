@@ -4,10 +4,13 @@ version = "0.1.0"
 authors = ["Christofer Nolander <christofer.nolander@gmail.com>"]
 
 
+# The main library
 [lib]
 name = "crank"
 path = "src/lib.rs"
 
+
+# Used for testing the library during it's development
 [[bin]]
 name = "crank_dev"
 path = "dev/src/main.rs"
@@ -15,4 +18,5 @@ path = "dev/src/main.rs"
 
 [dependencies]
 
+# For OpenGL bindings
 gl = "0.7.0"

@@ -2,6 +2,7 @@
 
 
 use ::window::WindowHandle;
+use ::window::WindowEventHandler;
 
 /// What is a game?
 /// - Contains callback functions for rendering and updates to the window
@@ -15,12 +16,12 @@ pub trait Game: WindowEventHandler {
 
     // TODO: Implement 'UpdateInfo'
 
-    /// Updates the contents of the game
+    // /// Updates the contents of the game
     // fn update(info: UpdateInfo);
 
 
     // TODO: Implement 'Renderer'
 
-    /// Render the contents of the game to a renderer
+    // /// Render the contents of the game to a renderer
     // fn render(renderer: &mut Renderer);
 }
