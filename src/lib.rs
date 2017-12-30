@@ -1,40 +1,19 @@
 
-#[macro_use]
-extern crate gfx;
-extern crate gfx_device_gl;
-
-extern crate gfx_window_glutin;
-extern crate glutin;
-
-extern crate time;
-extern crate cgmath;
-
-// pub mod linear;
-
-pub mod window;
-pub mod renderer;
-
-#[path = "test_app/app.rs"]
-pub mod app;
+extern crate gl;
 
 
-#[cfg(test)]
-mod tests {
+mod game;
+mod window;
 
-    use window;
-    use app;
+use game::Game;
 
-    #[test]
-    fn hello_triangle() {
-        println!("##### hello_triangle #####");
 
-        let mut settings = window::WindowSettings::default();
-        settings.title = "Hello, Triangle!".to_owned();
-        settings.vertical_sync = false;
-
-        let mut app = app::App::new();
-        window::open_window(settings, &mut app);
-
-        println!("##### end hello_triangle #####");
-    }
+/// Starts a new game in a window
+fn create_game<GameType: Game>() {
+    // TODO: Create a window
+    // TODO: Start a game in that window
 }
+
+
+
+

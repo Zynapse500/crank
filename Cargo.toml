@@ -1,15 +1,18 @@
 [package]
-name = "locus_engine"
+name = "crank"
 version = "0.1.0"
 authors = ["Christofer Nolander <christofer.nolander@gmail.com>"]
 
+
+[lib]
+name = "crank"
+path = "src/lib.rs"
+
+[[bin]]
+name = "crank_dev"
+path = "dev/src/main.rs"
+
+
 [dependencies]
 
-gfx = "0.16.1"
-glutin = "0.10.1"
-gfx_window_glutin = "0.18.0"
-gfx_device_gl = "0.14.4"
-
-time = "0.1"
-
-cgmath = "0.15.0"
+gl = "0.7.0"
