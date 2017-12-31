@@ -10,8 +10,12 @@ use ::window::WindowEventHandler;
 
 pub trait Game: WindowEventHandler {
     /// Creates a new game.
-    /// Provides a handle to the window the game is contained within.
-    fn setup(window: WindowHandle);
+    /// Also provides a handle to the window the game is contained within.
+    ///
+    /// # Arguments
+    ///
+    /// * 'window' - Handle that can modify the window
+    fn setup(window: WindowHandle) -> Self;
 
 
     // TODO: Implement 'UpdateInfo'
@@ -24,4 +28,9 @@ pub trait Game: WindowEventHandler {
 
     // /// Render the contents of the game to a renderer
     // fn render(renderer: &mut Renderer);
+
+
+
+    /// Determines if the game is running or not
+    fn is_running(&self) -> bool { true }
 }

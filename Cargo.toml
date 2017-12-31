@@ -19,4 +19,7 @@ path = "dev/src/main.rs"
 [dependencies]
 
 # For OpenGL bindings
-gl = "0.7.0"
+# gl_generator = "0.7.0"
+
+# For OpenGL context and window creation
+glutin = "0.12.0"
