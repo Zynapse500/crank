@@ -15,8 +15,8 @@ pub mod game;
 pub use game::{Game, UpdateInfo};
 
 /// Things related to Rendering
-pub mod renderer;
-pub use renderer::{Renderer, RenderBatch, Vertex};
+mod renderer;
+pub use renderer::{Renderer, RenderBatch, BoundedView};
 
 
 /// Things related to a window
@@ -24,6 +24,11 @@ pub mod window;
 
 pub use window::{WindowEventHandler, WindowHandle, KeyCode};
 use window::Window;
+
+
+/// Linear transformations
+pub mod linear;
+
 
 
 /// Used for timing

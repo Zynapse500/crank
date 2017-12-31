@@ -53,6 +53,15 @@ pub trait WindowEventHandler {
     ///
     /// * 'key' - The key that was pressed
     fn key_released(&mut self, key: KeyCode);
+
+
+    /// Called when the mouse cursor is moved within the window
+    ///
+    /// # Arguments
+    ///
+    /// * 'x' - The new x-position of the cursor
+    /// * 'y' - The new y-position of the cursor
+    fn mouse_moved(&mut self, x: i32, y: i32);
 }
 
 
@@ -206,28 +215,37 @@ impl WindowHandle {
             parent
         }
     }
+
+
+    /// Return true if a key is pressed
+    pub fn key_down(&self, key: KeyCode) -> bool {
+        self.parent.borrow().pressed_keys.contains(&key)
+    }
 }
 
 
 /// Handle a window event
 pub fn handle_window_event<EH: WindowEventHandler>(window: &Rc<RefCell<Window>>, event: WindowEvent, handler: &mut EH) {
-    match event {
-        WindowEvent::Closed => window.borrow_mut().open = false,
-        WindowEvent::KeyboardInput { input, .. } => handle_keyboard_event(input, handler),
-        WindowEvent::Resized(w, h) => handler.size_changed(w, h),
-
-        _ => ()
-    }
-}
-
-// Handles a keyboard event
-fn handle_keyboard_event<EH: WindowEventHandler>(input: glutin::KeyboardInput, handler: &mut EH) {
     use glutin::ElementState;
 
-    if let Some(key_code) = input.virtual_keycode {
-        match input.state {
-            ElementState::Pressed => handler.key_pressed(key_code),
-            ElementState::Released => handler.key_released(key_code),
-        }
+    match event {
+        // Window
+        WindowEvent::Closed => window.borrow_mut().open = false,
+        WindowEvent::Resized(w, h) => handler.size_changed(w, h),
+
+        // Keyboard
+        WindowEvent::KeyboardInput { input, .. } => {
+            if let Some(key_code) = input.virtual_keycode {
+                match input.state {
+                    ElementState::Pressed => handler.key_pressed(key_code),
+                    ElementState::Released => handler.key_released(key_code),
+                }
+            }
+        },
+
+        // Mouse
+        WindowEvent::CursorMoved{position:(x, y), ..} => handler.mouse_moved(x.round() as i32, y.round() as i32),
+
+        _ => ()
     }
 }

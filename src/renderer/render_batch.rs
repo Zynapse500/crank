@@ -1,6 +1,6 @@
 
-use ::Vertex;
-
+use super::Vertex;
+use super::{View, BoundedView};
 
 use std::f32::consts::PI;
 
@@ -9,7 +9,9 @@ pub struct RenderBatch {
     pub(super) vertices: Vec<Vertex>,
     pub(super) indices: Vec<u32>,
 
-    fill_color: [f32; 4]
+    fill_color: [f32; 4],
+
+    pub(super) view: Box<View>
 }
 
 
@@ -21,20 +23,35 @@ impl RenderBatch {
             vertices: Vec::new(),
             indices: Vec::new(),
 
-            fill_color: [1.0; 4]
+            fill_color: [1.0; 4],
+
+            view: Box::new(BoundedView::default())
         }
     }
 
 
-    /// Start a new rendering operation
-    pub fn begin(&mut self) {
+    /// Remove data from previous rendering commands
+    pub fn clear(&mut self) {
         self.vertices.clear();
+        self.indices.clear();
+
+        self.fill_color = [1.0; 4];
+
+        self.view = Box::new(BoundedView::default());
     }
 
 
     /// Set the current fill color
     pub fn set_fill_color(&mut self, color: [f32; 4]) {
         self.fill_color = color;
+    }
+
+
+    /// Set the current view
+    pub fn set_view<V>(&mut self, view: V)
+        where V: View + 'static
+    {
+        self.view = Box::new(view);
     }
 
 

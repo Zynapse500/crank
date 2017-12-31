@@ -100,4 +100,14 @@ impl Shader {
             gl::UseProgram(self.program);
         }
     }
+
+
+    /// Get the location of an uniform in the shader
+    pub fn get_uniform_location(&self, name: &[u8]) -> i32 {
+        let c_name = name.iter().map(|e| *e as i8).collect::<Vec<i8>>();
+
+        unsafe {
+            gl::GetUniformLocation(self.program, c_name.as_ptr())
+        }
+    }
 }

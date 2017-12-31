@@ -2,7 +2,7 @@
 use gl;
 use gl::types::*;
 
-use ::Vertex;
+use super::Vertex;
 
 pub struct VertexArray {
     handle: GLuint,
