@@ -1,6 +1,7 @@
 
 
 use gl;
+use std::mem::size_of;
 
 mod shader;
 use self::shader::Shader;
@@ -11,6 +12,12 @@ pub use self::vertex::Vertex;
 mod vertex_array;
 use self::vertex_array::VertexArray;
 
+mod render_batch;
+pub use self::render_batch::RenderBatch;
+
+
+
+
 /// Takes care of OpenGL rendering.
 pub struct Renderer {
     shader: Shader,
@@ -18,6 +25,7 @@ pub struct Renderer {
 }
 
 
+/// Locations of all the attributes in the shader
 enum AttributeLocations {
     Position = 0,
     Color = 1,
@@ -34,15 +42,10 @@ impl Renderer {
 
         shader.set_layout("position", AttributeLocations::Position as u32);
 
-        use std::mem::size_of;
         let mut vertex_buffer = VertexArray::new();
 
-        println!("Vertex: {}", size_of::<Vertex>());
-        println!("position off: {}", offset_of!(Vertex, position));
-
-        let stride = size_of::<Vertex>() as u32;
-
         // Setup vertex attributes
+        let stride = size_of::<Vertex>() as u32;
         vertex_buffer.set_attribute(AttributeLocations::Position as u32, 3, stride, offset_of!(Vertex, position) as u32);
         vertex_buffer.set_attribute(AttributeLocations::Color as u32, 4, stride, offset_of!(Vertex, color) as u32);
 
@@ -71,26 +74,15 @@ impl Renderer {
 
     /// Submit a render batch to the renderer
     pub fn submit_batch(&mut self, batch: &RenderBatch) {
-        // TODO: Set shader
+        // Set shader
         self.shader.bind();
 
-        // TODO: Update vertex buffer
+        // Update vertex buffer
         self.vertex_buffer.upload_vertices(&batch.vertices);
+        self.vertex_buffer.upload_indices(&batch.indices);
 
-        unsafe {
-            gl::PointSize(2.0);
-        }
-
-        // TODO: Draw vertex arrays
-        self.vertex_buffer.draw_vertices(0, batch.vertices.len(), gl::TRIANGLES);
+        // Draw indices
+        self.vertex_buffer.draw_indices(0, batch.indices.len(), gl::TRIANGLES);
     }
 }
 
-
-pub struct RenderBatch {
-    pub vertices: Vec<Vertex>
-}
-
-
-impl RenderBatch {
-}

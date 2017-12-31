@@ -15,9 +15,11 @@ fn main() {
 
 // A Game
 struct Game {
+    running: bool,
     window: WindowHandle,
+    time: f32,
 
-    time: f32
+    n: u32
 }
 
 
@@ -25,8 +27,11 @@ struct Game {
 impl crank::Game for Game {
     fn setup(window: WindowHandle) -> Game {
         Game {
+            running: true,
             window,
-            time: 0.0
+            time: 0.0,
+
+            n: 10
         }
     }
 
@@ -35,20 +40,23 @@ impl crank::Game for Game {
     }
 
     fn render(&self, renderer: &mut Renderer) {
+        let mut batch = RenderBatch::new();
 
-        let (mut y, mut x) = (self.time * 5.0).sin_cos();
-        x *= 0.25;
-        y *= 0.25;
 
-        let batch = RenderBatch {
-            vertices: vec![
-                Vertex::new( [ x + 0.0, y + 0.5, 0.0]).with_color([1.0, 0.0, 0.0, 1.0]),
-                Vertex::new( [ x + 0.5, y - 0.5, 0.0]).with_color([1.0, 1.0, 0.0, 1.0]),
-                Vertex::new( [ x - 0.5, y - 0.5, 0.0]).with_color([1.0, 0.0, 1.0, 1.0]),
-            ]
-        };
+        for i in 0..self.n {
+            let p =  1.0 - i as f32 / self.n as f32;
+
+            batch.set_fill_color([1.0, p, 0.0, 1.0]);
+            batch.draw_rectangle([-p / 2.0, -p / 2.0], [p, p]);
+        }
+
+        batch.set_fill_color([0.0, 1.0, 1.0, 1.0]);
+        batch.draw_circle([0.0, 0.0], 0.05 * (2.0 as f32).sqrt());
 
         renderer.submit_batch(&batch);
+    }
+    fn is_running(&self) -> bool {
+        self.running
     }
 }
 
@@ -60,19 +68,24 @@ impl crank::WindowEventHandler for Game {
     }
 
     fn key_pressed(&mut self, key: KeyCode) {
-        println!("Pressed: {:?}", key);
-
         match key {
-            KeyCode::F11 => {
-                println!("Fullscreen!!!");
-                self.window.toggle_fullscreen();
-            }
+            KeyCode::Escape => self.running = false,
+
+            KeyCode::Up => self.n += 1,
+            KeyCode::Down => if self.n > 1 {self.n -= 1},
 
             _ => ()
         }
+
+
+        println!("N: {}", self.n);
     }
 
+
     fn key_released(&mut self, key: KeyCode) {
-        println!("Released: {:?}", key);
+        match key {
+
+            _ => ()
+        }
     }
 }

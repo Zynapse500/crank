@@ -6,7 +6,9 @@ use ::Vertex;
 
 pub struct VertexArray {
     handle: GLuint,
-    vertex_buffer: Buffer
+
+    vertex_buffer: Buffer,
+    index_buffer: Buffer
 }
 
 impl VertexArray {
@@ -21,19 +23,31 @@ impl VertexArray {
         let mut vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
         vertex_buffer.bind();
 
+        let mut index_buffer: Buffer = Buffer::new(gl::ELEMENT_ARRAY_BUFFER);
+        index_buffer.bind();
+
         VertexArray {
             handle,
-            vertex_buffer
+            vertex_buffer,
+            index_buffer
+        }
+    }
+
+
+    /// Bind this vertex array
+    fn bind(&self) {
+        unsafe {
+            gl::BindVertexArray(self.handle);
         }
     }
 
 
     /// Setup the shader attributes
     pub fn set_attribute(&mut self, location: u32, size: u32, stride: u32, offset: u32) {
-        use std::os::raw::c_void;
+        self.bind();
 
         unsafe {
-            gl::BindVertexArray(self.handle);
+            use std::os::raw::c_void;
             self.vertex_buffer.bind();
 
             gl::EnableVertexAttribArray(location);
@@ -44,16 +58,33 @@ impl VertexArray {
 
     /// Upload vertices into the vertex buffer
     pub fn upload_vertices(&mut self, vertices: &[Vertex]) {
+        self.bind();
         self.vertex_buffer.upload(vertices);
     }
 
 
+    /// Upload indices into the vertex buffer
+    pub fn upload_indices(&mut self, indices: &[GLuint]) {
+        self.bind();
+        self.index_buffer.upload(indices);
+    }
+
+
+
     /// Draw vertices
     pub fn draw_vertices(&mut self, offset: usize, count: usize, mode: GLenum) {
+        self.bind();
         unsafe {
-            gl::BindVertexArray(self.handle);
-
             gl::DrawArrays(mode, offset as GLint, count as GLsizei);
+        }
+    }
+
+
+    /// Draw indices
+    pub fn draw_indices(&mut self, offset: usize, count: usize, mode: GLenum) {
+        self.bind();
+        unsafe {
+            gl::DrawElements(mode, count as GLsizei, gl::UNSIGNED_INT, offset as *const _);
         }
     }
 }

@@ -16,10 +16,7 @@ pub struct Window {
     pub (self) open: bool,
 
     // Keys that are pressed down
-    pressed_keys: HashSet<KeyCode>,
-
-    // The current state of fullscreen
-    fullscreen_enabled: bool,
+    pressed_keys: HashSet<KeyCode>
 }
 
 /// Frontend for the game to use when modifying the window
@@ -98,9 +95,7 @@ impl Window {
                 events_loop,
 
                 open: true,
-                pressed_keys: HashSet::new(),
-
-                fullscreen_enabled: false,
+                pressed_keys: HashSet::new()
             }
         )
     }
@@ -202,31 +197,6 @@ impl Window {
     pub fn get_size(&self) -> Option<(u32, u32)> {
         self.gl_window.get_inner_size()
     }
-
-
-    /// Sets the current state of fullscreen for this window
-    pub fn set_fullscreen(&mut self, fullscreen: bool) {
-        self.fullscreen_enabled = fullscreen;
-        
-        let primary_monitor = self.events_loop.get_primary_monitor();
-
-        let monitor = match fullscreen {
-            true => Some(primary_monitor),
-            false => None
-        };
-
-        self.gl_window.set_fullscreen(monitor);
-
-        if !self.fullscreen_enabled {
-            // Center window on screen
-        }
-    }
-
-    /// Toggles between fullscreen mode for this window
-    pub fn toggle_fullscreen(&mut self) {
-        let new_fullscreen = !self.fullscreen_enabled;
-        self.set_fullscreen(new_fullscreen);
-    }
 }
 
 
@@ -235,13 +205,6 @@ impl WindowHandle {
         WindowHandle {
             parent
         }
-    }
-
-
-    /// Toggles between fullscreen mode for the parent window
-    pub fn toggle_fullscreen(&mut self) {
-        let mut window = self.parent.borrow_mut();
-        window.toggle_fullscreen();
     }
 }
 
