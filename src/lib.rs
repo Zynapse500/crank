@@ -28,7 +28,9 @@ use window::Window;
 
 /// Linear transformations
 pub mod linear;
-
+pub use linear::{
+    Vec2, Vec2f
+};
 
 
 /// Used for timing
