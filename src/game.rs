@@ -1,8 +1,8 @@
 
 
 
-use ::window::WindowHandle;
-use ::window::WindowEventHandler;
+use ::{WindowHandle, WindowEventHandler};
+use ::Renderer;
 
 /// What is a game?
 /// - Contains callback functions for rendering and updates to the window
@@ -18,19 +18,21 @@ pub trait Game: WindowEventHandler {
     fn setup(window: WindowHandle) -> Self;
 
 
-    // TODO: Implement 'UpdateInfo'
-
-    // /// Updates the contents of the game
-    // fn update(info: UpdateInfo);
+    /// Updates the contents of the game
+    fn update(&mut self, info: UpdateInfo);
 
 
-    // TODO: Implement 'Renderer'
-
-    // /// Render the contents of the game to a renderer
-    // fn render(renderer: &mut Renderer);
+    /// Render the contents of the game to a renderer
+    fn render(&self, renderer: &mut Renderer);
 
 
 
     /// Determines if the game is running or not
     fn is_running(&self) -> bool { true }
+}
+
+
+pub struct UpdateInfo {
+    // Change in time, in seconds
+    pub dt: f32
 }
