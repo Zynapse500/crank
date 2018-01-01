@@ -18,13 +18,14 @@ pub use game::{Game, UpdateInfo};
 
 /// Things related to Rendering
 mod renderer;
-pub use renderer::{Renderer, RenderBatch, BoundedView};
+pub use renderer::{Renderer, RenderBatch};
+pub use renderer::view::*;
 
 
 /// Things related to a window
 pub mod window;
 
-pub use window::{WindowEventHandler, WindowHandle, KeyCode};
+pub use window::{WindowEventHandler, WindowHandle, KeyCode, MouseButton};
 use window::Window;
 
 

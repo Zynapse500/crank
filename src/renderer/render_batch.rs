@@ -1,6 +1,6 @@
 
 use super::Vertex;
-use super::{View, BoundedView};
+use super::view::{View, BoundedView};
 
 use std::f32::consts::PI;
 

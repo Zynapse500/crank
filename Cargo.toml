@@ -29,3 +29,6 @@ memoffset = "0.1"
 
 # For numeric traits in generics
 num-traits = "0.1.41"
+
+# For randomness
+rand = "0.4.1"

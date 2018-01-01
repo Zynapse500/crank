@@ -15,8 +15,7 @@ use self::vertex_array::VertexArray;
 mod render_batch;
 pub use self::render_batch::RenderBatch;
 
-mod view;
-pub use self::view::{View, BoundedView};
+pub mod view;
 
 
 /// Takes care of OpenGL rendering.
