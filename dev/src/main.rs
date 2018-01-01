@@ -8,7 +8,7 @@ mod frame_counter;
 use frame_counter::FrameCounter;
 
 use crank::{WindowHandle, KeyCode, UpdateInfo, Renderer, RenderBatch, BoundedView};
-use crank::{Vec2f};
+use crank::{Vec2f, Vec2i};
 
 
 // Start a new game
@@ -16,13 +16,24 @@ fn main() {
 
     let a = Vec2f::new(3.0, 2.0);
     let b = Vec2f::new(1.0, 5.0);
+    let c = Vec2i::new(3, 4);
+    let d = Vec2f::from(c);
 
     println!("{} + {} = {}", a, b, a + b);
     println!("{} - {} = {}", a, b, a - b);
     println!("{} * {} = {}", a, b, a * b);
     println!("{} / {} = {}", a, b, a / b);
 
-    
+    println!("{} . {} = {}", a, b, a.dot(b));
+
+    println!("|{}| = {}", a, a.length());
+
+    println!("c: {}", c);
+    println!("d: {}", d);
+
+    println!("f32: {}", f32::default());
+
+
 
 
 
@@ -66,7 +77,10 @@ impl crank::Game for Game {
 
     fn update(&mut self, info: UpdateInfo) {
         self.time += info.dt;
-        self.frame_counter.tick();
+
+        if let Some(fps) = self.frame_counter.tick() {
+            self.window.set_title(&format!("FPS: {}", fps));
+        }
 
         self.draw();
     }
@@ -120,6 +134,7 @@ impl crank::WindowEventHandler for Game {
 impl Game {
     fn draw(&mut self) {
         let v = Vec2f::from(0.0);
+
 
         self.batch.clear();
 

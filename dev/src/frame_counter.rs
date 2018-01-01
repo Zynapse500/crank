@@ -18,7 +18,7 @@ impl FrameCounter {
     }
 
 
-    pub fn tick(&mut self) {
+    pub fn tick(&mut self) -> Option<u32> {
         let now = Instant::now();
         let elapsed = now - self.start;
         let elapsed_secs = elapsed.as_secs() as f32 + elapsed.subsec_nanos() as f32 / 1e9;
@@ -29,7 +29,11 @@ impl FrameCounter {
             self.fps = (self.frames as f32 / elapsed_secs).round() as u32;
             self.start = now;
             self.frames = 0;
+
+            return Some(self.fps);
         }
+
+        None
     }
 
 

@@ -23,4 +23,9 @@ path = "dev/src/main.rs"
 
 # For OpenGL context and window creation
 glutin = "0.12.0"
+
+# For struct size querying
 memoffset = "0.1"
+
+# For numeric traits in generics
+num-traits = "0.1.41"

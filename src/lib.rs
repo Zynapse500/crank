@@ -5,6 +5,8 @@ extern crate glutin;
 #[macro_use]
 extern crate memoffset;
 
+extern crate num_traits;
+
 
 /// Contains bindings for OpenGL
 mod gl;
@@ -28,9 +30,7 @@ use window::Window;
 
 /// Linear transformations
 pub mod linear;
-pub use linear::{
-    Vec2, Vec2f
-};
+pub use linear::*;
 
 
 /// Used for timing

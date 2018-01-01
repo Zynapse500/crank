@@ -9,7 +9,7 @@ use std::cell::RefCell;
 
 /// A window the user can interact with
 pub struct Window {
-    gl_window: GlWindow,
+    pub(self) gl_window: GlWindow,
     events_loop: EventsLoop,
 
     // Is the window open?
@@ -220,6 +220,12 @@ impl WindowHandle {
     /// Return true if a key is pressed
     pub fn key_down(&self, key: KeyCode) -> bool {
         self.parent.borrow().pressed_keys.contains(&key)
+    }
+
+
+    /// Set the title of the window
+    pub fn set_title(&mut self, title: &str) {
+        self.parent.borrow().gl_window.set_title(title);
     }
 }
 

@@ -1,13 +1,13 @@
 
+use num_traits::{NumOps, Float};
 
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Vec2<T: Copy + Clone> {
-    x: T,
-    y: T
+    pub x: T,
+    pub y: T
 }
-
 
 
 
@@ -18,6 +18,55 @@ impl<T: Copy + Clone> Vec2<T> {
 }
 
 
+
+impl<T: Copy + Clone + NumOps<T, T> + Add<Output = T>> Vec2<T> {
+    /// Dot multiplication
+    pub fn dot(&self, a: Vec2<T>) -> T {
+        self.x * a.x + self.y * a.y
+    }
+
+
+    /// Squared length/magnitude of vector
+    pub fn squared_length(&self) -> T {
+        self.x * self.x + self.y * self.y
+    }
+}
+
+
+impl<T: Float> Vec2<T> {
+    /// Length of vector
+    pub fn length(&self) -> T {
+        (self.x * self.x + self.y * self.y).sqrt()
+    }
+
+
+    /// Round vector
+    pub fn round(self) -> Self {
+        Vec2 {
+            x: self.x.round(),
+            y: self.y.round()
+        }
+    }
+
+    /// Floor vector
+    pub fn floor(self) -> Self {
+        Vec2 {
+            x: self.x.floor(),
+            y: self.y.floor()
+        }
+    }
+
+    /// Round vector
+    pub fn ceil(self) -> Self {
+        Vec2 {
+            x: self.x.ceil(),
+            y: self.y.ceil()
+        }
+    }
+}
+
+
+
 //////////////////////////////
 // Operate between two Vec2 //
 //////////////////////////////
@@ -25,7 +74,7 @@ impl<T: Copy + Clone> Vec2<T> {
 use std::ops::{Add, Sub, Mul, Div};
 
 /// Add Vec2 and Vec2
-impl<T: Copy + Clone + Add<Output = T>> Add<Vec2<T>> for Vec2<T> {
+impl<T: Copy + Clone + NumOps<T, T>> Add<Vec2<T>> for Vec2<T> {
     type Output = Vec2<T>;
 
     fn add(self, rhs: Vec2<T>) -> Self::Output {
@@ -37,7 +86,7 @@ impl<T: Copy + Clone + Add<Output = T>> Add<Vec2<T>> for Vec2<T> {
 }
 
 /// Subtract Vec2 and Vec2
-impl<T: Copy + Clone + Sub<Output = T>> Sub<Vec2<T>> for Vec2<T> {
+impl<T: Copy + Clone + NumOps<T, T>> Sub<Vec2<T>> for Vec2<T> {
     type Output = Vec2<T>;
 
     fn sub(self, rhs: Vec2<T>) -> Self::Output {
@@ -49,7 +98,7 @@ impl<T: Copy + Clone + Sub<Output = T>> Sub<Vec2<T>> for Vec2<T> {
 }
 
 /// Multiply Vec2 and Vec2
-impl<T: Copy + Clone + Mul<Output = T>> Mul<Vec2<T>> for Vec2<T> {
+impl<T: Copy + Clone + NumOps<T, T>> Mul<Vec2<T>> for Vec2<T> {
     type Output = Vec2<T>;
 
     fn mul(self, rhs: Vec2<T>) -> Self::Output {
@@ -61,7 +110,7 @@ impl<T: Copy + Clone + Mul<Output = T>> Mul<Vec2<T>> for Vec2<T> {
 }
 
 /// Divide Vec2 and Vec2
-impl<T: Copy + Clone + Div<Output = T>> Div<Vec2<T>> for Vec2<T> {
+impl<T: Copy + Clone + NumOps<T, T>> Div<Vec2<T>> for Vec2<T> {
     type Output = Vec2<T>;
 
     fn div(self, rhs: Vec2<T>) -> Self::Output {
@@ -79,7 +128,7 @@ impl<T: Copy + Clone + Div<Output = T>> Div<Vec2<T>> for Vec2<T> {
 /////////////////////////////////////
 
 /// Multiply scalar and Vec2
-impl<T: Copy + Clone + Mul<Output = T>> Mul<T> for Vec2<T> {
+impl<T: Copy + Clone + NumOps<T, T>> Mul<T> for Vec2<T> {
     type Output = Vec2<T>;
 
     fn mul(self, rhs: T) -> Self::Output {
@@ -92,16 +141,24 @@ impl<T: Copy + Clone + Mul<Output = T>> Mul<T> for Vec2<T> {
 
 
 
-///////////////////////////////
-// Convert from another type //
-///////////////////////////////
+/////////////////////////////////
+// Construct from another type //
+/////////////////////////////////
+
+
+impl From<Vec2<i32>> for Vec2<f32> {
+    fn from(v: Vec2<i32>) -> Self {
+        Vec2::new(v.x as f32, v.y as f32)
+    }
+}
+
 
 /// Create Vec2 from a scalar
 impl<T: Copy + Clone> From<T> for Vec2<T> {
     fn from(scalar: T) -> Self {
         Vec2 {
-            x: scalar.clone(),
-            y: scalar.clone()
+            x: scalar,
+            y: scalar
         }
     }
 }
@@ -123,6 +180,13 @@ impl<T: Copy + Clone> From<[T; 2]> for Vec2<T> {
 // Convert into another type //
 ///////////////////////////////
 
+/// Convert Vec2 to Vec2 of another type
+/*impl<C, T: Copy + Clone + Into<C>> Into<Vec2<C>> for Vec2<T> {
+    fn into(self) -> Vec2<C> {
+        Vec2::new(self.x.into(), self.y.into())
+    }
+}*/
+
 /// Convert Vec2 to an array
 impl<T: Copy + Clone> Into<[T; 2]> for Vec2<T> {
     fn into(self) -> [T; 2] {
@@ -131,12 +195,11 @@ impl<T: Copy + Clone> Into<[T; 2]> for Vec2<T> {
 }
 
 /// Convert Vec2 to an array
-impl<T: From<u8> + Copy + Clone> Into<[T; 3]> for Vec2<T> {
+impl<T: Default + Copy + Clone> Into<[T; 3]> for Vec2<T> {
     fn into(self) -> [T; 3] {
-        [self.x, self.y, T::from(0)]
+        [self.x, self.y, T::default()]
     }
 }
-
 
 
 
