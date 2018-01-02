@@ -1,9 +1,5 @@
 
-mod frame_counter;
+pub mod frame_counter;
 
-mod rectangle_paint;
-
-pub fn rectangle_paint() {
-    rectangle_paint::run()
-}
-
+pub mod rectangle_paint;
+pub mod textures;

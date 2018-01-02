@@ -72,6 +72,7 @@ impl VertexArray {
 
 
     /// Draw vertices
+    #[allow(dead_code)]
     pub fn draw_vertices(&mut self, offset: usize, count: usize, mode: GLenum) {
         self.bind();
         unsafe {

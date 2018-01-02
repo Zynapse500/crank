@@ -1,5 +1,9 @@
 
 
+// Number of rectangles to paint per second
+const RECTANGLES_PER_SECOND: f32 = 1000.0;
+
+
 use crank;
 
 use rand::{Rng, thread_rng};
@@ -76,12 +80,13 @@ impl crank::Game for Game {
         if len > 0.0 {
             let view_delta = vec2_scale(512.0 * info.dt, vec2_normalize(direction));
             self.view.center = vec2_add(self.view.center, view_delta);
+            self.batch.set_view(self.view);
         }
 
         if self.window.mouse_down(MouseButton::Left) {
             self.spray_cooldown += info.dt;
 
-            let per_second = 10000.0;
+            let per_second = RECTANGLES_PER_SECOND;
 
             let mut redraw = false;
 
@@ -118,7 +123,7 @@ impl crank::WindowEventHandler for Game {
         self.height = height as f32;
 
         self.view.size = [width as f32, height as f32];
-        self.draw();
+        self.batch.set_view(self.view);
     }
 
     fn key_pressed(&mut self, key: KeyCode) {
@@ -144,6 +149,8 @@ impl crank::WindowEventHandler for Game {
             let delta = [previous_world[0] - current_world[0], previous_world[1] - current_world[1]];
             self.view.center[0] += delta[0];
             self.view.center[1] += delta[1];
+
+            self.batch.set_view(self.view);
         }
     }
 

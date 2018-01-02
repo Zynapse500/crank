@@ -16,7 +16,12 @@ mod tests {
 
     #[test]
     fn rectangle_paint() {
-        dev::rectangle_paint();
+        dev::rectangle_paint::run()
+    }
+
+    #[test]
+    fn textures() {
+        dev::textures::run()
     }
 }
 

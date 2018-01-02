@@ -52,7 +52,8 @@ pub trait WindowEventHandler {
     ///
     /// * 'width' - The new width of the window
     /// * 'height' - The new height of the window
-    fn size_changed(&mut self, width: u32, height: u32);
+    #[allow(unused_variables)]
+    fn size_changed(&mut self, width: u32, height: u32) {}
 
 
     /// Called when a key is pressed within the window
@@ -60,14 +61,16 @@ pub trait WindowEventHandler {
     /// # Arguments
     ///
     /// * 'key' - The key that was pressed
-    fn key_pressed(&mut self, key: KeyCode);
+    #[allow(unused_variables)]
+    fn key_pressed(&mut self, key: KeyCode) {}
 
     /// Called when a key is released within the window
     ///
     /// # Arguments
     ///
     /// * 'key' - The key that was released
-    fn key_released(&mut self, key: KeyCode);
+    #[allow(unused_variables)]
+    fn key_released(&mut self, key: KeyCode) {}
 
 
     /// Called when the mouse cursor is moved within the window
@@ -76,7 +79,8 @@ pub trait WindowEventHandler {
     ///
     /// * 'x' - The new x-position of the cursor
     /// * 'y' - The new y-position of the cursor
-    fn mouse_moved(&mut self, x: i32, y: i32);
+    #[allow(unused_variables)]
+    fn mouse_moved(&mut self, x: i32, y: i32) {}
 
 
     /// Called when a mouse button is pressed within the window
@@ -86,7 +90,8 @@ pub trait WindowEventHandler {
     /// * 'button' - The button that was pressed
     /// * 'x' - The x-position of the cursor
     /// * 'y' - The y-position of the cursor
-    fn mouse_pressed(&mut self, button: MouseButton, x: i32, y: i32);
+    #[allow(unused_variables)]
+    fn mouse_pressed(&mut self, button: MouseButton, x: i32, y: i32) {}
 
 
     /// Called when a mouse button is released within the window
@@ -96,7 +101,8 @@ pub trait WindowEventHandler {
     /// * 'button' - The button that was released
     /// * 'x' - The x-position of the cursor
     /// * 'y' - The y-position of the cursor
-    fn mouse_released(&mut self, button: MouseButton, x: i32, y: i32);
+    #[allow(unused_variables)]
+    fn mouse_released(&mut self, button: MouseButton, x: i32, y: i32) {}
 }
 
 
@@ -118,7 +124,7 @@ impl Window {
 
         // OpenGL settings
         let context_builder = glutin::ContextBuilder::new()
-            .with_vsync(false)
+            .with_vsync(true)
             .with_multisampling(8);
 
         // Create window
@@ -127,6 +133,7 @@ impl Window {
 
             Ok(window) => window,
         };
+
 
         // Load OpenGL
         if let Err(e) = Window::load_gl_context(&gl_window) {

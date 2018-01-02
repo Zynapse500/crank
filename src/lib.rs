@@ -20,6 +20,8 @@ pub use game::{Game, UpdateInfo};
 mod renderer;
 pub use renderer::{Renderer, RenderBatch};
 pub use renderer::view::*;
+pub use renderer::vertex::Vertex;
+pub use renderer::texture::{Texture, TextureData, TextureFilter};
 
 
 /// Things related to a window
@@ -59,19 +61,19 @@ pub fn run_game<GameType: Game>(width: u32, height: u32, title: &str) -> Result<
     // Create game
     let mut game = GameType::setup(WindowHandle::new(window.clone()));
 
+
     //////////////////
     // Run the game //
     //////////////////
 
     // Create a renderer
     let mut renderer = Renderer::new();
-    renderer.set_clear_color((0.2, 0.2, 0.2, 1.0));
+    renderer.set_clear_color([0.2, 0.2, 0.2, 1.0]);
 
     // Measure the time each iteration of the game loop takes to complete
     let mut last_iteration_time = Instant::now();
 
     // Run the game loop for as long as the window and the game is open
-
     while game.is_running() && window.borrow().is_open() {
         // Setup OpenGL viewport
         let window_size = window.borrow().get_size(); // Rc::get_mut(&mut window).unwrap().get_size();
