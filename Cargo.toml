@@ -8,13 +8,15 @@ authors = ["Christofer Nolander <christofer.nolander@gmail.com>"]
 [lib]
 name = "crank"
 path = "src/lib.rs"
-
+test = false
+doctest = false
 
 # Used for testing the library during it's development
-[[bin]]
-name = "crank_dev"
-path = "dev/src/main.rs"
-
+[[test]]
+name = "dev"
+path = "tests/tests.rs"
+test = true
+doctest = false
 
 [dependencies]
 
@@ -29,6 +31,10 @@ memoffset = "0.1"
 
 # For numeric traits in generics
 num-traits = "0.1.41"
+
+
+
+[dev-dependencies]
 
 # For randomness
 rand = "0.4.1"
