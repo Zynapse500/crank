@@ -7,7 +7,7 @@ use rand::{Rng, thread_rng};
 use crank::linear::*;
 use crank::{UpdateInfo, Renderer, RenderBatch};
 use crank::{WindowHandle, KeyCode, MouseButton};
-use crank::{View, BoundedView, CenteredView};
+use crank::{View, CenteredView};
 
 use super::frame_counter::FrameCounter;
 
