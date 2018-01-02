@@ -1,20 +1,28 @@
 // For window and OpenGL context creation
 extern crate glutin;
+use glutin::WindowEvent;
 
 // For offset_of!
 #[macro_use]
 extern crate memoffset;
 
+// For numeric generics
 extern crate num_traits;
 
+// For image loading
+extern crate lodepng;
+extern crate rgb;
 
 /// Contains bindings for OpenGL
 mod gl;
 
 /// Things related to a Game
-pub mod game;
-
+mod game;
 pub use game::{Game, UpdateInfo};
+
+/// Things related to an App
+mod app;
+pub use app::App;
 
 /// Things related to Rendering
 mod renderer;
@@ -24,10 +32,16 @@ pub use renderer::vertex::Vertex;
 pub use renderer::texture::{Texture, TextureData, TextureFilter};
 
 
+/// Images
+mod image;
+pub use image::{Image, ImageFormat};
+
+
 /// Things related to a window
 pub mod window;
 
-pub use window::{WindowEventHandler, WindowHandle, KeyCode, MouseButton};
+pub use window::{WindowEventHandler, WindowFileHandler, WindowHandle};
+pub use window::{KeyCode, MouseButton, ScrollDelta};
 use window::Window;
 
 
@@ -39,11 +53,18 @@ pub use linear::*;
 /// Used for timing
 use std::time::{Instant};
 
+
+/// Various std
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::ops::Deref;
 
 
 /// Starts a new game in a window
+///
+/// # Description
+///
+/// A game renders continuously, even when the user is inactive
 ///
 /// # Arguments
 ///
@@ -67,8 +88,8 @@ pub fn run_game<GameType: Game>(width: u32, height: u32, title: &str) -> Result<
     //////////////////
 
     // Create a renderer
-    let mut renderer = Renderer::new();
-    renderer.set_clear_color([0.2, 0.2, 0.2, 1.0]);
+    let mut renderer = Renderer::new(window.borrow().deref());
+    renderer.set_clear_color([0.0, 0.0, 0.0, 1.0]);
 
     // Measure the time each iteration of the game loop takes to complete
     let mut last_iteration_time = Instant::now();
@@ -112,3 +133,80 @@ pub fn run_game<GameType: Game>(width: u32, height: u32, title: &str) -> Result<
 
     Ok(())
 }
+
+
+
+/// Starts a new app in a window.
+///
+/// # Description
+///
+/// A app only renders it's contents when a refresh is required.
+/// For example when the window changes size or the user interacts with the window
+///
+/// # Arguments
+///
+/// * 'width' - Width of the window
+/// * 'height' - Height of the window
+/// * 'title' - Title of the window
+pub fn run_app<AppType: App>(width: u32, height: u32, title: &str, settings: AppSettings) -> Result<(), String> {
+    // Create a window
+    let window = match Window::new(width, height, title) {
+        Err(e) => return Err(format!("{}", e)),
+
+        Ok(window) => Rc::new(RefCell::new(window)),
+    };
+
+    // Create an app
+    let mut app = AppType::setup(WindowHandle::new(window.clone()));
+
+
+    /////////////////
+    // Run the app //
+    /////////////////
+
+    // Create a renderer
+    let mut renderer = Renderer::new(window.borrow().deref());
+    renderer.set_clear_color(settings.clear_color);
+
+
+    // Run the game loop for as long as the window and the game is open
+    while app.is_running() && window.borrow().is_open() {
+        // Handle all events
+        let window_events = window.borrow_mut().wait_events();
+        for event in window_events.iter() {
+            // Setup OpenGL viewport
+            if let &WindowEvent::Resized(w, h) = event {
+                unsafe { gl::Viewport(0, 0, w as i32, h as i32) };
+            }
+
+            window::handle_window_event(&window, event.clone(), &mut app);
+            window::handle_window_file_event(event.clone(), &mut app);
+        }
+
+        //////////////////////////////////////////
+        // Re-render app when event is received //
+        //////////////////////////////////////////
+
+        if window_events.len() > 0 {
+            // Clear colors
+            renderer.clear();
+
+            // Render app
+            app.render(&mut renderer);
+
+            // Swap front and back buffers
+            if let Err(e) = window.borrow().swap_buffers() {
+                return Err(format!("{}", e));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+
+/// Settings for an app
+pub struct AppSettings {
+    pub clear_color: [f32; 4],
+}
+

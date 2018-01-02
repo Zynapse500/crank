@@ -2,7 +2,7 @@
 name = "crank"
 version = "0.1.0"
 authors = ["Christofer Nolander <christofer.nolander@gmail.com>"]
-
+build = "build.rs"
 
 # The main library
 [lib]
@@ -10,6 +10,10 @@ name = "crank"
 path = "src/lib.rs"
 test = false
 doctest = false
+
+[[bin]]
+name = "Chili"
+path = "image_viewer/main.rs"
 
 # Used for testing the library during it's development
 [[test]]
@@ -32,9 +36,15 @@ memoffset = "0.1"
 # For numeric traits in generics
 num-traits = "0.1.41"
 
-
+# For loading png images
+lodepng = "2.1.2"
+rgb = "0.8.7"
 
 [dev-dependencies]
 
 # For randomness
 rand = "0.4.1"
+
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1.4"

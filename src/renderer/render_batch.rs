@@ -92,22 +92,22 @@ impl RenderBatch {
         self.vertices.push(
             Vertex::new([x,     y,     z])
             .with_color(self.fill_color)
-            .with_tex_coord([0.0, 0.0])
+            .with_tex_coord([0.0, 1.0])
         );
         self.vertices.push(
             Vertex::new([x + w, y,     z])
             .with_color(self.fill_color)
-            .with_tex_coord([1.0, 0.0])
+            .with_tex_coord([1.0, 1.0])
         );
         self.vertices.push(
             Vertex::new([x + w, y + h, z])
             .with_color(self.fill_color)
-            .with_tex_coord([1.0, 1.0])
+            .with_tex_coord([1.0, 0.0])
         );
         self.vertices.push(
             Vertex::new([x,     y + h, z])
             .with_color(self.fill_color)
-            .with_tex_coord([0.0, 1.0])
+            .with_tex_coord([0.0, 0.0])
         );
 
         self.indices.push(index_start + 0);

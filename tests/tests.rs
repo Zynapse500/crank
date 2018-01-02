@@ -23,6 +23,11 @@ mod tests {
     fn textures() {
         dev::textures::run()
     }
+
+    #[test]
+    fn app() {
+        dev::app::run();
+    }
 }
 
 

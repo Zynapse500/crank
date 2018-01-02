@@ -45,7 +45,7 @@ struct UniformLocations {
 
 impl Renderer {
     /// Create a new renderer
-    pub fn new() -> Self {
+    pub fn new(_window: &::window::Window) -> Self {
         let mut shader = Shader::from_source(
             include_bytes!("shaders/shader.vert"),
             include_bytes!("shaders/shader.frag")
@@ -69,9 +69,13 @@ impl Renderer {
             layers: shader.get_uniform_location(b"layers\0")
         };
 
-        // Enable depth test
         unsafe {
+            // Enable depth test
             gl::Enable(gl::DEPTH_TEST);
+
+            // Enable alpha opacity
+            gl::Enable(gl::BLEND);
+            gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
         }
 
         Renderer {

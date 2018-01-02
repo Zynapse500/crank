@@ -1,5 +1,9 @@
 use crank;
 
+
+const TEXTURE_SCALE: f32 = 4.0;
+
+
 use super::frame_counter::FrameCounter;
 
 pub fn run() {
@@ -8,6 +12,7 @@ pub fn run() {
 
 
 struct Game {
+    running: bool,
     window: crank::WindowHandle,
 
     frame_counter: FrameCounter,
@@ -18,8 +23,9 @@ struct Game {
 
     texture: crank::Texture,
     texture_size: [f32; 2],
+    texture_offset: [f32; 2],
 
-    color_filter: [f32; 4]
+    color_filter: [f32; 4],
 }
 
 
@@ -29,10 +35,16 @@ impl Game {
         self.update_view();
 
         self.batch.set_texture(Some(self.texture));
-        self.batch.set_fill_color(self.color_filter);
+        // self.batch.set_fill_color(self.color_filter);
         self.batch.draw_rectangle(
-            [-self.texture_size[0] / 2.0, -self.texture_size[1] / 2.0],
-            [self.texture_size[0], self.texture_size[1]]
+            [
+                -self.texture_size[0] / 2.0 + self.texture_offset[0],
+                -self.texture_size[1] / 2.0 + self.texture_offset[1]
+            ],
+            [
+                self.texture_size[0],
+                self.texture_size[1]
+            ],
         );
     }
 
@@ -44,19 +56,13 @@ impl Game {
 
 impl crank::Game for Game {
     fn setup(window: crank::WindowHandle) -> Self {
-        let pixels = crank::TextureData::RGBA(
-            &[
-                255, 255, 255, 255,     255, 0,   0,   255,     255, 255, 0,   255,
-                0,   0,   0,   255,     0,   255, 255, 255,     0,   0,   255, 255,
-                255, 0,   255, 255,     0,   255,   0,   255,     255, 0,   0,   255,
-            ]
-        );
-        println!("Pixels: {:?}", pixels);
+        let image = crank::Image::decode_png(include_bytes!("res/chili.png")).unwrap();
 
-        let mut texture = crank::Texture::new(3, 3, pixels);
-        texture.set_filter(crank::TextureFilter::Linear);
+        let mut texture = crank::Texture::from(image.clone());
+        texture.set_filter(crank::TextureFilter::Nearest);
 
         Game {
+            running: true,
             window,
 
             frame_counter: FrameCounter::new(),
@@ -66,9 +72,10 @@ impl crank::Game for Game {
             view: crank::CenteredView::default(),
 
             texture,
-            texture_size: [0.0, 0.0],
+            texture_size: crank::vec2_scale(TEXTURE_SCALE, [image.get_width() as f32, image.get_height() as f32]),
+            texture_offset: [0.0, 0.0],
 
-            color_filter: [1.0; 4]
+            color_filter: [1.0; 4],
         }
     }
 
@@ -77,7 +84,9 @@ impl crank::Game for Game {
 
         self.color_filter[0] = self.time.cos() / 2.0 + 0.5;
         self.color_filter[1] = self.time.sin() / 2.0 + 0.5;
-        self.color_filter[1] = (self.time / 10.0f32).sin() / 2.0 + 0.5;
+        self.color_filter[2] = (self.time / 10.0f32).sin() / 2.0 + 0.5;
+
+        self.texture_offset[1] = self.time.sin() * 20.0;
 
         self.draw();
 
@@ -87,8 +96,12 @@ impl crank::Game for Game {
     }
 
     fn render(&self, renderer: &mut crank::Renderer) {
-        renderer.set_clear_color([0.0; 4]);
+        renderer.set_clear_color([1.0; 4]);
         renderer.submit_batch(&self.batch);
+    }
+
+    fn is_running(&self) -> bool {
+        self.running
     }
 }
 
@@ -98,9 +111,15 @@ impl crank::WindowEventHandler for Game {
         self.view.center = [0.0, 0.0];
         self.view.size = [width as f32, height as f32];
 
-        self.texture_size[0] = width as f32 - 0.0;
-        self.texture_size[1] = height as f32 - 0.0;
-
         self.update_view();
+    }
+
+
+    fn key_pressed(&mut self, key: crank::KeyCode) {
+        match key {
+            crank::KeyCode::Escape => self.running = false,
+
+            _ => ()
+        }
     }
 }

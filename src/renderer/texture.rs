@@ -1,6 +1,9 @@
 use gl;
 
-#[derive(Copy, Clone)]
+use ::image::{Image, ImageFormat};
+
+
+#[derive(Debug, Copy, Clone)]
 pub struct Texture {
     handle: u32
 }
@@ -85,3 +88,15 @@ impl Default for Texture {
     }
 }
 
+
+impl From<Image> for Texture {
+    fn from(image: Image) -> Self {
+        let (width, height) = image.get_size();
+
+        let data = match image.get_format() {
+            ImageFormat::RGBA => TextureData::RGBA(image.as_bytes())
+        };
+
+        Texture::new(width, height, data)
+    }
+}
