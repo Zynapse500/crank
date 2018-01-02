@@ -2,7 +2,6 @@
 name = "crank"
 version = "0.1.0"
 authors = ["Christofer Nolander <christofer.nolander@gmail.com>"]
-build = "build.rs"
 
 # The main library
 [lib]
@@ -45,6 +44,3 @@ rgb = "0.8.7"
 # For randomness
 rand = "0.4.1"
 
-
-[target.'cfg(windows)'.build-dependencies]
-winres = "0.1.4"
