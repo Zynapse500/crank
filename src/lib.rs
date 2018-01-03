@@ -19,9 +19,8 @@ extern crate memoffset;
 // For numeric generics
 extern crate num_traits;
 
-// For image loading
-extern crate lodepng;
-extern crate rgb;
+// For images loading
+extern crate image;
 
 /// Contains bindings for OpenGL
 mod gl;
@@ -43,8 +42,8 @@ pub use renderer::texture::{Texture, TextureData, TextureFilter};
 
 
 /// Images
-mod image;
-pub use image::{Image, ImageFormat};
+mod images;
+pub use images::{Image, ImageFormat};
 
 
 /// Things related to a window

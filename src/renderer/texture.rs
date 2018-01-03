@@ -1,6 +1,6 @@
 use gl;
 
-use ::image::{Image, ImageFormat};
+use ::images::{Image, ImageFormat};
 
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]

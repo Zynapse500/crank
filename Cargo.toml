@@ -32,8 +32,7 @@ memoffset = "0.1"
 num-traits = "0.1.41"
 
 # For loading png images
-lodepng = "2.1.2"
-rgb = "0.8.7"
+image = "0.18.0"
 
 [dev-dependencies]
 

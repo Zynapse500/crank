@@ -53,7 +53,7 @@ impl Game {
 
 impl crank::Game for Game {
     fn setup(window: crank::WindowHandle) -> Self {
-        let image = crank::Image::decode_png(include_bytes!("res/banana.png")).unwrap();
+        let image = crank::Image::decode(include_bytes!("res/banana.png")).unwrap();
 
         let mut texture = crank::Texture::from(image.clone());
         texture.set_filter(crank::TextureFilter::Nearest);

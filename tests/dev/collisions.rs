@@ -64,13 +64,14 @@ impl Game {
         /////////////////
 
         self.batch.set_texture(Some(self.texture_b));
-        self.batch.set_texture(None);
         self.batch.fill_rectangle(&self.rect_b);
 
 
         //////////
         // Line //
         //////////
+
+        self.batch.set_texture(None);
 
         self.batch.set_color([1.0, 0.0, 1.0, 1.0]);
         self.batch.draw_line(&self.line, 1.0);
@@ -120,8 +121,8 @@ impl crank::Game for Game {
             rect_b: crank::Rectangle {center: [100.0, 75.0], size: [32.0; 2]},
             line: crank::Line::new([-200.0, 100.0], [-100.0, -100.0]),
 
-            texture_a: crank::Texture::from(crank::Image::decode_png(include_bytes!("res/apple.png")).unwrap()),
-            texture_b: crank::Texture::from(crank::Image::decode_png(include_bytes!("res/banana.png")).unwrap())
+            texture_a: crank::Texture::from(crank::Image::decode(include_bytes!("res/apple.png")).unwrap()),
+            texture_b: crank::Texture::from(crank::Image::decode(include_bytes!("res/banana.png")).unwrap())
         };
 
         game.texture_b.set_filter(crank::TextureFilter::Linear);
