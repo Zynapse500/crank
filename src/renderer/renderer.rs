@@ -71,6 +71,8 @@ impl Renderer {
             // Enable alpha opacity
             gl::Enable(gl::BLEND);
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+
+            // gl::Enable(gl::ALPHA_TEST);
         }
 
         Renderer {
@@ -80,6 +82,7 @@ impl Renderer {
             uniforms
         }
     }
+
 
 
     /// Set the color used to clear the screen
@@ -111,6 +114,8 @@ impl Renderer {
             gl::Uniform2f(self.uniforms.scale, scale[0], scale[1]);
             gl::Uniform1ui(self.uniforms.layers, batch.layer_count);
         }
+
+        // print_deb!(batch.mesh_indices);
 
         // Bind texture
         for (texture, mesh) in batch.mesh_indices.iter() {

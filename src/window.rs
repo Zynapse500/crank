@@ -350,6 +350,7 @@ impl Window {
 
 
 impl WindowHandle {
+
     pub fn new(parent: Rc<RefCell<Window>>) -> Self {
         WindowHandle {
             parent

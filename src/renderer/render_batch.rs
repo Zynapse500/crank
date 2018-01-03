@@ -49,18 +49,23 @@ impl RenderBatch {
         }
     }
 
+    pub fn get_layer_count(&self) -> u32 {
+        self.layer_count
+    }
+
 
     /// Remove data from previous rendering commands
     pub fn clear(&mut self) {
-        for (_, mesh) in self.mesh_indices.iter() {
-            self.meshes[*mesh].vertices.clear();
-            self.meshes[*mesh].indices.clear();
+        for (_, &index) in self.mesh_indices.iter() {
+            self.meshes[index].vertices.clear();
+            self.meshes[index].indices.clear();
         }
 
+        self.mesh_indices.clear();
+        self.set_texture(None);
+
         self.current_color = [1.0; 4];
-
         self.layer_count = 0;
-
         self.view = Box::new(BoundedView::default());
     }
 
@@ -85,12 +90,16 @@ impl RenderBatch {
             if self.mesh_indices.contains_key(&texture) {
                 self.current_mesh = self.mesh_indices[&texture];
             } else {
-                let mesh_index = self.meshes.len();
+                let mesh_index = self.mesh_indices.len();
                 self.mesh_indices.insert(texture, mesh_index);
-                self.meshes.push(Mesh::new());
+                while mesh_index >= self.meshes.len() {
+                    self.meshes.push(Mesh::new());
+                }
+                self.current_mesh = mesh_index;
             }
         } else {
-            self.current_mesh = self.mesh_indices[&self.default_texture];
+            let texture = self.default_texture;
+            self.set_texture(Some(texture));
         }
     }
 

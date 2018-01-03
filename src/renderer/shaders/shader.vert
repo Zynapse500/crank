@@ -16,11 +16,11 @@ out FragData {
 
 void main() {
     vec2 newPosition = (position.xy + translation) * scale;
-    float z = 0.99 - 1.98 * position.z / float(layers);
+    float z = 0.99 - 0.98 * position.z / float(layers);
 
     gl_Position = vec4(newPosition, z, 1);
 
-    frag.position = position;
+    frag.position = vec3(newPosition, z);
     frag.color = color;
     frag.texCoord = texCoord;
 }

@@ -16,7 +16,7 @@ mod tests {
 
     #[test]
     fn rectangle_paint() {
-        dev::rectangle_paint::run()
+        dev::rectangle_paint::main()
     }
 
     #[test]

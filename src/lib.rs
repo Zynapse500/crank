@@ -3,7 +3,7 @@
 /// Debugging macro
 #[allow(unused_macros)]
 macro_rules! print_deb {
-    ($var:expr) => {print!("{}: {:?}", stringify!($var), $var)};
+    ($var:expr) => {println!("{}: {:?}", stringify!($var), $var)};
 }
 
 
@@ -102,6 +102,9 @@ pub fn run_game<GameType: Game>(width: u32, height: u32, title: &str, settings: 
         Ok(window) => Rc::new(RefCell::new(window)),
     };
 
+    // Create a renderer
+    let mut renderer = Renderer::new(window.borrow().deref());
+
     // Create game
     let mut game = GameType::setup(WindowHandle::new(window.clone()));
 
@@ -110,8 +113,6 @@ pub fn run_game<GameType: Game>(width: u32, height: u32, title: &str, settings: 
     // Run the game //
     //////////////////
 
-    // Create a renderer
-    let mut renderer = Renderer::new(window.borrow().deref());
     renderer.set_clear_color([0.0, 0.0, 0.0, 1.0]);
 
     // Measure the time each iteration of the game loop takes to complete

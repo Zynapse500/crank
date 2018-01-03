@@ -1,4 +1,11 @@
+#[allow(unused_macros)]
+macro_rules! print_deb {
+  ($var:expr) => {println!("{}: {:?}", stringify!($var), $var)};
+}
+
+
 use crank;
+
 
 
 const TEXTURE_SCALE: f32 = 4.0;
@@ -8,7 +15,7 @@ use super::frame_counter::FrameCounter;
 
 pub fn run() {
     let settings = crank::GameSettings {
-        vertical_sync: false,
+        vertical_sync: true,
     };
 
     crank::run_game::<Game>(900, 900, "Textures", settings).unwrap();
@@ -25,7 +32,10 @@ struct Game {
     batch: crank::RenderBatch,
     view: crank::CenteredView,
 
-    texture: crank::Texture,
+    apple_texture: crank::Texture,
+    banana_texture: crank::Texture,
+    chili_texture: crank::Texture,
+
     texture_size: [f32; 2],
     texture_offset: [f32; 2],
 
@@ -40,9 +50,26 @@ impl Game {
         self.batch.clear();
         self.update_view();
 
-        self.batch.set_texture(Some(self.texture));
-        // self.batch.set_fill_color(self.color_filter);
-        self.batch.fill_rectangle(&Rectangle::new([0.0, 0.0], self.texture_size));
+
+        // println!("chili: {}", self.batch.get_layer_count());
+        self.batch.set_texture(Some(self.chili_texture));
+        self.batch.fill_rectangle(&Rectangle::new([45.0, 20.0], self.texture_size));
+
+        // println!("banana: {}", self.batch.get_layer_count());
+        self.batch.set_texture(Some(self.banana_texture));
+        self.batch.fill_rectangle(&Rectangle::new([80.0, 0.0], self.texture_size));
+
+        // println!("apple: {}", self.batch.get_layer_count());
+        self.batch.set_texture(Some(self.apple_texture));
+        self.batch.fill_rectangle(&Rectangle::new(self.texture_offset, self.texture_size));
+
+        // println!("banana: {}", self.batch.get_layer_count());
+        self.batch.set_texture(Some(self.banana_texture));
+        self.batch.fill_rectangle(&Rectangle::new([-80.0, 0.0], self.texture_size));
+
+        // println!("apple: {}", self.batch.get_layer_count());
+        self.batch.set_texture(Some(self.apple_texture));
+        self.batch.fill_rectangle(&Rectangle::new([-40.0, 40.0], self.texture_size));
     }
 
     fn update_view(&mut self) {
@@ -53,10 +80,9 @@ impl Game {
 
 impl crank::Game for Game {
     fn setup(window: crank::WindowHandle) -> Self {
-        let image = crank::Image::decode(include_bytes!("res/banana.png")).unwrap();
+        let image = crank::Image::decode(include_bytes!("res/apple.png")).unwrap();
 
-        let mut texture = crank::Texture::from(image.clone());
-        texture.set_filter(crank::TextureFilter::Nearest);
+        let texture = crank::Texture::from(image.clone());
 
         Game {
             running: true,
@@ -68,7 +94,10 @@ impl crank::Game for Game {
             batch: crank::RenderBatch::new(),
             view: crank::CenteredView::default(),
 
-            texture,
+            apple_texture: texture,
+            chili_texture: crank::Texture::from(crank::Image::decode(include_bytes!("res/chili.png")).unwrap()),
+            banana_texture: crank::Texture::from(crank::Image::decode(include_bytes!("res/banana.png")).unwrap()),
+
             texture_size: crank::vec2_scale(TEXTURE_SCALE, [image.get_width() as f32, image.get_height() as f32]),
             texture_offset: [0.0, 0.0],
 
@@ -79,11 +108,7 @@ impl crank::Game for Game {
     fn update(&mut self, info: crank::UpdateInfo) {
         self.time += info.dt;
 
-        self.color_filter[0] = self.time.cos() / 2.0 + 0.5;
-        self.color_filter[1] = self.time.sin() / 2.0 + 0.5;
-        self.color_filter[2] = (self.time / 10.0f32).sin() / 2.0 + 0.5;
-
-        self.texture_offset[1] = self.time.sin() * 20.0;
+        self.texture_offset[1] = self.time.sin() * 40.0;
 
         self.draw();
 
@@ -93,7 +118,7 @@ impl crank::Game for Game {
     }
 
     fn render(&self, renderer: &mut crank::Renderer) {
-        renderer.set_clear_color([0.5; 4]);
+        renderer.set_clear_color([0.3; 4]);
         renderer.submit_batch(&self.batch);
     }
 

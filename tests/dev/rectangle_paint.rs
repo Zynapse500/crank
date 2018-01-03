@@ -1,8 +1,7 @@
 
 
 // Number of rectangles to paint per second
-const RECTANGLES_PER_SECOND: f32 = 1000.0;
-
+const RECTANGLES_PER_SECOND: f32 = 10000.0;
 
 use crank;
 
@@ -16,7 +15,7 @@ use crank::{RenderShape, Rectangle};
 
 use super::frame_counter::FrameCounter;
 
-pub fn run() {
+pub fn main() {
     let settings = GameSettings {
         vertical_sync: false,
     };
@@ -70,7 +69,8 @@ impl crank::Game for Game {
         self.time += info.dt;
 
         if let Some(fps) = self.frame_counter.tick() {
-            self.window.set_title(&format!("FPS: {}   ---   Particles: {}", fps, self.particles.len()));
+            use std::mem::size_of;
+            self.window.set_title(&format!("FPS: {}   ---   Particles: {} ({})", fps, self.particles.len(), self.particles.capacity() * size_of::<Particle>()));
         }
 
 
@@ -200,8 +200,8 @@ impl Particle {
         let x = position[0];
         let y = position[1];
 
-        let sx = thread_rng().gen_range(15.0, 100.0);
-        let sy = thread_rng().gen_range(15.0, 100.0);
+        let sx = 16.0; // thread_rng().gen_range(16.0, 16.0);
+        let sy = 16.0; // thread_rng().gen_range(16.0, 16.0);
 
         let r = thread_rng().gen_range(0.2, 1.0);
         let g = thread_rng().gen_range(0.2, 1.0);

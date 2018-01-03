@@ -2,6 +2,7 @@
 name = "crank"
 version = "0.1.0"
 authors = ["Christofer Nolander <christofer.nolander@gmail.com>"]
+build = "build.rs"
 
 # The main library
 [lib]
@@ -19,9 +20,6 @@ doctest = false
 
 [dependencies]
 
-# For OpenGL bindings
-# gl_generator = "0.7.0"
-
 # For OpenGL context and window creation
 glutin = "0.12.0"
 
@@ -33,6 +31,13 @@ num-traits = "0.1.41"
 
 # For loading png images
 image = "0.18.0"
+
+
+[build-dependencies]
+
+# For OpenGL bindings
+gl_generator = "0.8.0"
+
 
 [dev-dependencies]
 

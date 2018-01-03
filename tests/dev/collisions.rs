@@ -108,7 +108,7 @@ impl Game {
 
 impl crank::Game for Game {
     fn setup(window: crank::WindowHandle) -> Self {
-        let mut game = Game {
+        Game {
             running: true,
             window,
 
@@ -123,11 +123,7 @@ impl crank::Game for Game {
 
             texture_a: crank::Texture::from(crank::Image::decode(include_bytes!("res/apple.png")).unwrap()),
             texture_b: crank::Texture::from(crank::Image::decode(include_bytes!("res/banana.png")).unwrap())
-        };
-
-        game.texture_b.set_filter(crank::TextureFilter::Linear);
-
-        game
+        }
     }
 
     fn update(&mut self, info: crank::UpdateInfo) {
