@@ -23,6 +23,11 @@ mod tests {
     fn textures() {
         dev::textures::run()
     }
+
+    #[test]
+    fn collisions() {
+        dev::collisions::run()
+    }
 }
 
 

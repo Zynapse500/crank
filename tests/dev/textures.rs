@@ -31,21 +31,14 @@ struct Game {
 
 impl Game {
     fn draw(&mut self) {
+        use crank::{RenderShape, Rectangle};
+
         self.batch.clear();
         self.update_view();
 
         self.batch.set_texture(Some(self.texture));
         // self.batch.set_fill_color(self.color_filter);
-        self.batch.draw_rectangle(
-            [
-                -self.texture_size[0] / 2.0 + self.texture_offset[0],
-                -self.texture_size[1] / 2.0 + self.texture_offset[1]
-            ],
-            [
-                self.texture_size[0],
-                self.texture_size[1]
-            ],
-        );
+        self.batch.fill_rectangle(&Rectangle::new([0.0, 0.0], self.texture_size));
     }
 
     fn update_view(&mut self) {
@@ -56,7 +49,7 @@ impl Game {
 
 impl crank::Game for Game {
     fn setup(window: crank::WindowHandle) -> Self {
-        let image = crank::Image::decode_png(include_bytes!("res/chili.png")).unwrap();
+        let image = crank::Image::decode_png(include_bytes!("res/banana.png")).unwrap();
 
         let mut texture = crank::Texture::from(image.clone());
         texture.set_filter(crank::TextureFilter::Nearest);
@@ -96,7 +89,7 @@ impl crank::Game for Game {
     }
 
     fn render(&self, renderer: &mut crank::Renderer) {
-        renderer.set_clear_color([1.0; 4]);
+        renderer.set_clear_color([0.5; 4]);
         renderer.submit_batch(&self.batch);
     }
 

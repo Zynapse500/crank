@@ -1,6 +1,6 @@
 
 use num_traits::{Num, Float};
-
+use std::ops::Neg;
 
 /// Vector addition
 pub fn vec2_add<T: Copy + Num>(a: [T; 2], b: [T; 2]) -> [T; 2] {
@@ -14,9 +14,30 @@ pub fn vec2_sub<T: Copy + Num>(a: [T; 2], b: [T; 2]) -> [T; 2] {
 }
 
 
+/// Vector multiplication
+pub fn vec2_mul<T: Copy + Num>(a: [T; 2], b: [T; 2]) -> [T; 2] {
+    [a[0] * b[0], a[1] * b[1]]
+}
+
+
+/// Vector division
+pub fn vec2_div<T: Copy + Num>(a: [T; 2], b: [T; 2]) -> [T; 2] {
+    [a[0] / b[0], a[1] / b[1]]
+}
+
+
+
+
 /// Scale
 pub fn vec2_scale<T: Copy + Num>(s: T, a: [T; 2]) -> [T; 2] {
     [s * a[0], s * a[1]]
+}
+
+
+
+/// Perpendicular of vector
+pub fn vec2_perp<T: Copy + Num + Neg<Output = T>>(a: [T; 2]) -> [T; 2] {
+    [-a[1], a[0]]
 }
 
 
@@ -41,5 +62,4 @@ pub fn vec2_distance<T: Copy + Float>(a: [T; 2], b: [T; 2]) -> T {
 pub fn vec2_normalize<T: Copy + Float>(a: [T; 2]) -> [T; 2] {
     vec2_scale(T::one() / vec2_length(a), a)
 }
-
 

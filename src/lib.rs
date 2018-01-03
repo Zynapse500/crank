@@ -1,3 +1,12 @@
+
+
+/// Debugging macro
+macro_rules! print_deb {
+    ($var:expr) => {print!("{}: {:?}", stringify!($var), $var)};
+}
+
+
+
 // For window and OpenGL context creation
 extern crate glutin;
 use glutin::WindowEvent;
@@ -38,7 +47,7 @@ pub use image::{Image, ImageFormat};
 
 
 /// Things related to a window
-pub mod window;
+mod window;
 
 pub use window::{WindowEventHandler, WindowFileHandler, WindowHandle};
 pub use window::{KeyCode, MouseButton, ScrollDelta};
@@ -49,6 +58,14 @@ use window::Window;
 pub mod linear;
 pub use linear::*;
 
+
+/// Shapes
+mod shape;
+pub use shape::*;
+
+/// Collisions
+mod collision;
+pub use collision::*;
 
 /// Used for timing
 use std::time::{Instant};

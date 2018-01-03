@@ -12,6 +12,7 @@ use crank::linear::*;
 use crank::{UpdateInfo, Renderer, RenderBatch};
 use crank::{WindowHandle, KeyCode, MouseButton};
 use crank::{View, CenteredView};
+use crank::{RenderShape, Rectangle};
 
 use super::frame_counter::FrameCounter;
 
@@ -175,8 +176,8 @@ impl Game {
         self.batch.set_view(self.view);
 
         for particle in self.particles.iter() {
-            self.batch.set_fill_color(particle.color);
-            self.batch.draw_rectangle(vec2_sub(particle.center, vec2_scale(0.5, particle.size)), particle.size.into());
+            self.batch.set_color(particle.color);
+            self.batch.fill_rectangle(&Rectangle::new(particle.center, particle.size));
         }
     }
 }

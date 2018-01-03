@@ -312,7 +312,7 @@ impl Window {
         window_event = self.filter_window_event(window_event.unwrap());
 
         let mut window_events = Vec::new();
-        
+
         if let Some(event) = window_event {
             window_events.push(event);
         }
