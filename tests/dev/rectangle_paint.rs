@@ -10,14 +10,18 @@ use rand::{Rng, thread_rng};
 
 use crank::linear::*;
 use crank::{UpdateInfo, Renderer, RenderBatch};
-use crank::{WindowHandle, KeyCode, MouseButton};
+use crank::{GameSettings, WindowHandle, KeyCode, MouseButton};
 use crank::{View, CenteredView};
 use crank::{RenderShape, Rectangle};
 
 use super::frame_counter::FrameCounter;
 
 pub fn run() {
-    crank::run_game::<Game>(512, 512, "Crank").unwrap();
+    let settings = GameSettings {
+        vertical_sync: false,
+    };
+
+    crank::run_game::<Game>(512, 512, "Crank", settings).unwrap();
 }
 
 

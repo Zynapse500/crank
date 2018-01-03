@@ -6,6 +6,8 @@ mod shader;
 pub mod vertex;
 use self::vertex::Vertex;
 
+mod mesh;
+
 mod vertex_array;
 
 mod render_batch;

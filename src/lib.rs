@@ -1,6 +1,7 @@
 
 
 /// Debugging macro
+#[allow(unused_macros)]
 macro_rules! print_deb {
     ($var:expr) => {print!("{}: {:?}", stringify!($var), $var)};
 }
@@ -88,9 +89,15 @@ use std::ops::Deref;
 /// * 'width' - Width of the window
 /// * 'height' - Height of the window
 /// * 'title' - Title of the window
-pub fn run_game<GameType: Game>(width: u32, height: u32, title: &str) -> Result<(), String> {
+pub fn run_game<GameType: Game>(width: u32, height: u32, title: &str, settings: GameSettings) -> Result<(), String> {
+    let window_settings = window::WindowSettings{
+        width, height, title: title.to_owned(),
+
+        vertical_sync: settings.vertical_sync
+    };
+
     // Create a window
-    let window = match Window::new(width, height, title) {
+    let window = match Window::new(window_settings) {
         Err(e) => return Err(format!("{}", e)),
 
         Ok(window) => Rc::new(RefCell::new(window)),
@@ -152,6 +159,11 @@ pub fn run_game<GameType: Game>(width: u32, height: u32, title: &str) -> Result<
 }
 
 
+/// Settings for a game
+pub struct GameSettings {
+    pub vertical_sync: bool
+}
+
 
 /// Starts a new app in a window.
 ///
@@ -166,8 +178,14 @@ pub fn run_game<GameType: Game>(width: u32, height: u32, title: &str) -> Result<
 /// * 'height' - Height of the window
 /// * 'title' - Title of the window
 pub fn run_app<AppType: App>(width: u32, height: u32, title: &str, settings: AppSettings) -> Result<(), String> {
+    let window_settings = window::WindowSettings{
+        width, height, title: title.to_owned(),
+
+        vertical_sync: false
+    };
+
     // Create a window
-    let window = match Window::new(width, height, title) {
+    let window = match Window::new(window_settings) {
         Err(e) => return Err(format!("{}", e)),
 
         Ok(window) => Rc::new(RefCell::new(window)),

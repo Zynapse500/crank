@@ -32,6 +32,16 @@ pub struct Window {
     cursor_position: [i32; 2]
 }
 
+/// Settings for window creation
+pub struct WindowSettings {
+    pub width: u32,
+    pub height: u32,
+    pub title: String,
+
+    pub vertical_sync: bool
+}
+
+
 /// Frontend for the game to use when modifying the window
 pub struct WindowHandle {
     // The window this handler is handling
@@ -153,20 +163,18 @@ impl Window {
     ///
     /// # Arguments
     ///
-    /// * 'width' - Width of the window
-    /// * 'height' - Height of the window
-    /// * 'title' - Title of the window
-    pub fn new(width: u32, height: u32, title: &str) -> Result<Self, String> {
+    /// * 'settings' - Settings for the window
+    pub fn new(settings: WindowSettings) -> Result<Self, String> {
         let events_loop = glutin::EventsLoop::new();
 
         // Window settings
         let window_builder = glutin::WindowBuilder::new()
-            .with_dimensions(width, height)
-            .with_title(title);
+            .with_dimensions(settings.width, settings.height)
+            .with_title(settings.title);
 
         // OpenGL settings
         let context_builder = glutin::ContextBuilder::new()
-            .with_vsync(true)
+            .with_vsync(settings.vertical_sync)
             .with_multisampling(8);
 
         // Create window
@@ -188,11 +196,11 @@ impl Window {
                 events_loop,
 
                 open: true,
-                size: [width, height],
+                size: [settings.width, settings.height],
 
                 pressed_keys: HashSet::new(),
                 pressed_buttons: HashSet::new(),
-                cursor_position: [width as i32 / 2, height as i32 / 2]
+                cursor_position: [settings.width as i32 / 2, settings.height as i32 / 2]
             }
         )
     }

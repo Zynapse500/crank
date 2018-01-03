@@ -3,19 +3,23 @@ use super::Vertex;
 use super::view::{View, BoundedView};
 use super::texture::Texture;
 
+use super::mesh::Mesh;
+
 use ::shape::{RenderShape, Rectangle, Line};
 
 use std::f32::consts::PI;
-
+use std::collections::HashMap;
 
 pub struct RenderBatch {
-    pub(super) vertices: Vec<Vertex>,
-    pub(super) indices: Vec<u32>,
+    pub(super) mesh_indices: HashMap<Texture, usize>,
+    pub(super) meshes: Vec<Mesh>,
 
     pub(super) layer_count: u32,
 
     current_color: [f32; 4],
-    pub(super) texture: Option<Texture>,
+    current_mesh: usize,
+
+    default_texture: Texture,
 
     pub(super) view: Box<View>
 }
@@ -25,14 +29,21 @@ impl RenderBatch {
 
     /// Create a new batch
     pub fn new() -> RenderBatch {
+        let default_texture = Texture::default();
+
+        let mut mesh_indices = HashMap::new();
+        mesh_indices.insert(default_texture, 0);
+
         RenderBatch {
-            vertices: Vec::new(),
-            indices: Vec::new(),
+            mesh_indices,
+            meshes: vec![Mesh::new()],
 
             layer_count: 0,
 
             current_color: [1.0; 4],
-            texture: None,
+            current_mesh: 0,
+
+            default_texture,
 
             view: Box::new(BoundedView::default())
         }
@@ -41,8 +52,10 @@ impl RenderBatch {
 
     /// Remove data from previous rendering commands
     pub fn clear(&mut self) {
-        self.vertices.clear();
-        self.indices.clear();
+        for (_, mesh) in self.mesh_indices.iter() {
+            self.meshes[*mesh].vertices.clear();
+            self.meshes[*mesh].indices.clear();
+        }
 
         self.current_color = [1.0; 4];
 
@@ -68,7 +81,17 @@ impl RenderBatch {
 
     /// Set the current texture
     pub fn set_texture(&mut self, texture: Option<Texture>) {
-        self.texture = texture;
+        if let Some(texture) = texture {
+            if self.mesh_indices.contains_key(&texture) {
+                self.current_mesh = self.mesh_indices[&texture];
+            } else {
+                let mesh_index = self.meshes.len();
+                self.mesh_indices.insert(texture, mesh_index);
+                self.meshes.push(Mesh::new());
+            }
+        } else {
+            self.current_mesh = self.mesh_indices[&self.default_texture];
+        }
     }
 
 
@@ -88,10 +111,13 @@ impl RenderBatch {
 
         let z = self.advance_layer();
 
-        let index_start: u32 = self.vertices.len() as u32;
+        // Get current mesh
+        let mesh = &mut self.meshes[self.current_mesh];
+
+        let index_start: u32 = mesh.vertices.len() as u32;
 
         // Add center vertex
-        self.vertices.push(Vertex::new([x, y, z]).with_color(self.current_color));
+        mesh.vertices.push(Vertex::new([x, y, z]).with_color(self.current_color));
 
         // Add perimeter
         let delta_angle = 2.0 * PI / segments as f32;
@@ -100,14 +126,17 @@ impl RenderBatch {
         for s in 0..segments {
             // Add perimeter vertices
             let (dy, dx) = angle.sin_cos();
-            self.vertices.push(Vertex::new([x + radius * dx, y + radius * dy, z]).with_color(self.current_color));
+            mesh.vertices.push(
+                Vertex::new([x + radius * dx, y + radius * dy, z])
+                    .with_color(self.current_color)
+            );
 
             // Add center
-            self.indices.push(index_start);
+            mesh.indices.push(index_start);
 
             // Add perimeters
-            self.indices.push(index_start + s + 1);
-            self.indices.push(index_start + (s + 1) % segments + 1);
+            mesh.indices.push(index_start + s + 1);
+            mesh.indices.push(index_start + (s + 1) % segments + 1);
 
             // Increase angle
             angle += delta_angle;
@@ -145,26 +174,31 @@ impl RenderShape for RenderBatch {
         let c = ::vec2_add(end, pr);
         let d = ::vec2_sub(end, pr);
 
-        // Construct line vertices
         let z = self.advance_layer();
-        let index_start: u32 = self.vertices.len() as u32;
 
-        self.vertices.push(
+        // Get current mesh
+        let mesh = &mut self.meshes[self.current_mesh];
+
+
+        // Construct line vertices
+        let index_start: u32 = mesh.vertices.len() as u32;
+
+        mesh.vertices.push(
             Vertex::new([b[0], b[1], z])
                 .with_color(self.current_color)
                 .with_tex_coord([0.0, 1.0])
         );
-        self.vertices.push(
+        mesh.vertices.push(
             Vertex::new([d[0], d[1], z])
                 .with_color(self.current_color)
                 .with_tex_coord([1.0, 1.0])
         );
-        self.vertices.push(
+        mesh.vertices.push(
             Vertex::new([c[0], c[1], z])
                 .with_color(self.current_color)
                 .with_tex_coord([1.0, 0.0])
         );
-        self.vertices.push(
+        mesh.vertices.push(
             Vertex::new([a[0], a[1], z])
                 .with_color(self.current_color)
                 .with_tex_coord([0.0, 0.0])
@@ -172,12 +206,12 @@ impl RenderShape for RenderBatch {
 
 
         // Index vertices
-        self.indices.push(index_start + 0);
-        self.indices.push(index_start + 1);
-        self.indices.push(index_start + 2);
-        self.indices.push(index_start + 2);
-        self.indices.push(index_start + 3);
-        self.indices.push(index_start + 0);
+        mesh.indices.push(index_start + 0);
+        mesh.indices.push(index_start + 1);
+        mesh.indices.push(index_start + 2);
+        mesh.indices.push(index_start + 2);
+        mesh.indices.push(index_start + 3);
+        mesh.indices.push(index_start + 0);
     }
 
     fn fill_rectangle(&mut self, rect: &Rectangle) {
@@ -188,35 +222,38 @@ impl RenderShape for RenderBatch {
 
         let z = self.advance_layer();
 
-        let index_start: u32 = self.vertices.len() as u32;
+        // Get current mesh
+        let mesh = &mut self.meshes[self.current_mesh];
 
-        self.vertices.push(
+        let index_start: u32 = mesh.vertices.len() as u32;
+
+        mesh.vertices.push(
             Vertex::new([x,     y,     z])
                 .with_color(self.current_color)
                 .with_tex_coord([0.0, 1.0])
         );
-        self.vertices.push(
+        mesh.vertices.push(
             Vertex::new([x + w, y,     z])
                 .with_color(self.current_color)
                 .with_tex_coord([1.0, 1.0])
         );
-        self.vertices.push(
+        mesh.vertices.push(
             Vertex::new([x + w, y + h, z])
                 .with_color(self.current_color)
                 .with_tex_coord([1.0, 0.0])
         );
-        self.vertices.push(
+        mesh.vertices.push(
             Vertex::new([x,     y + h, z])
                 .with_color(self.current_color)
                 .with_tex_coord([0.0, 0.0])
         );
 
-        self.indices.push(index_start + 0);
-        self.indices.push(index_start + 1);
-        self.indices.push(index_start + 2);
-        self.indices.push(index_start + 2);
-        self.indices.push(index_start + 3);
-        self.indices.push(index_start + 0);
+        mesh.indices.push(index_start + 0);
+        mesh.indices.push(index_start + 1);
+        mesh.indices.push(index_start + 2);
+        mesh.indices.push(index_start + 2);
+        mesh.indices.push(index_start + 3);
+        mesh.indices.push(index_start + 0);
     }
 
     fn draw_rectangle(&mut self, rect: &Rectangle, line_width: f32) {

@@ -7,7 +7,11 @@ const TEXTURE_SCALE: f32 = 4.0;
 use super::frame_counter::FrameCounter;
 
 pub fn run() {
-    crank::run_game::<Game>(900, 900, "Textures").unwrap();
+    let settings = crank::GameSettings {
+        vertical_sync: false,
+    };
+
+    crank::run_game::<Game>(900, 900, "Textures", settings).unwrap();
 }
 
 

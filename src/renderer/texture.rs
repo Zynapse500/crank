@@ -3,7 +3,7 @@ use gl;
 use ::image::{Image, ImageFormat};
 
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Texture {
     handle: u32
 }

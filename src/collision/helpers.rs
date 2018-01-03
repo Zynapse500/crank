@@ -13,14 +13,14 @@ pub fn sign(a: f32) -> f32 {
 /// Returns true if a range contains a value
 /// Format: [min, max]
 pub fn range_contains(a: [f32; 2], value: f32) -> bool {
-    a[0] <= value && value <= a[1]
+    a[0] < value && value < a[1]
 }
 
 
 /// Returns true if two ranges intersect
 /// Format: [min, max]
 pub fn ranges_intersect(a: [f32; 2], b: [f32; 2]) -> bool {
-    a[0] <= b[1] && b[0] <= a[1]
+    a[0] < b[1] && b[0] < a[1]
 }
 
 

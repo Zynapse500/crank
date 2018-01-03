@@ -1,8 +1,14 @@
 
 use crank;
 
+use self::super::frame_counter::FrameCounter;
+
 pub fn run() {
-    crank::run_game::<Game>(720, 720, "Collisions").unwrap();
+    let settings = crank::GameSettings {
+        vertical_sync: false,
+    };
+
+    crank::run_game::<Game>(720, 720, "Collisions", settings).unwrap();
 }
 
 
@@ -10,62 +16,56 @@ struct Game {
     running: bool,
     window: crank::WindowHandle,
 
+    frame_counter: FrameCounter,
+
     batch: crank::RenderBatch,
     view: crank::CenteredView,
 
     rect_a: crank::Rectangle,
     rect_b: crank::Rectangle,
-    line: crank::Line
+    line: crank::Line,
+
+    texture_a: crank::Texture,
+    texture_b: crank::Texture
 }
 
 
 impl Game {
     fn draw(&mut self) {
-        use crank::{RenderShape, Collide, RayCast, Rectangle, Line};
+        use crank::{RenderShape, RayCast, Rectangle, Line};
 
         self.batch.clear();
         self.batch.set_view(self.view);
+
+
+        ////////////////
+        // Background //
+        ////////////////
+
+        let size = self.window.get_size();
+
+        self.batch.set_color([0.2, 0.2, 0.2, 1.0]);
+        self.batch.fill_rectangle(&Rectangle::new([0.0, 0.0], [size[0] as f32, size[1] as f32]));
+
 
 
         /////////////////
         // Rectangle A //
         /////////////////
 
-        self.batch.set_color([0.0, 0.0, 1.0, 1.0]);
+        self.batch.set_color([1.0, 1.0, 1.0, 1.0]);
+        self.batch.set_texture(Some(self.texture_a));
 
-        let mouse = self.mouse_to_world(self.window.get_cursor_position());
-        if self.rect_a.contains(mouse) {
-            self.batch.fill_rectangle(&self.rect_a);
-        } else {
-            self.batch.draw_rectangle(&self.rect_a, 1.0);
-        }
+        self.batch.fill_rectangle(&self.rect_a);
 
 
         /////////////////
         // Rectangle B //
         /////////////////
 
-        // Check for intersections
-        if self.rect_b.intersects(&self.rect_a) {
-            self.batch.set_color([1.0, 0.0, 0.0, 1.0]);
-        } else {
-            self.batch.set_color([0.0, 1.0, 0.0, 1.0]);
-        }
-
-        self.batch.draw_rectangle(&self.rect_b, 1.0);
-
-        // Check for overlap
-        if let Some(overlap) = self.rect_b.overlap(&self.rect_a) {
-            let rect_c = Rectangle::new(
-                crank::vec2_add(self.rect_b.center, overlap.resolve),
-                self.rect_b.size
-            );
-
-            self.batch.set_color([1.0, 1.0, 1.0, 1.0]);
-            self.batch.draw_rectangle(&rect_c, 1.0);
-
-            self.batch.draw_line(&Line::new(rect_c.center, self.rect_b.center), 1.0);
-        }
+        self.batch.set_texture(Some(self.texture_b));
+        self.batch.set_texture(None);
+        self.batch.fill_rectangle(&self.rect_b);
 
 
         //////////
@@ -107,21 +107,32 @@ impl Game {
 
 impl crank::Game for Game {
     fn setup(window: crank::WindowHandle) -> Self {
-        Game {
+        let mut game = Game {
             running: true,
             window,
+
+            frame_counter: FrameCounter::new(),
 
             batch: crank::RenderBatch::new(),
             view: crank::CenteredView{ center: [0.0, 0.0], size: [2.0, 2.0]},
 
-            rect_a: crank::Rectangle {center: [0.0, 0.0], size: [100.0, 50.0]},
-            rect_b: crank::Rectangle {center: [100.0, 75.0], size: [25.0, 150.0]},
-            line: crank::Line::new([-200.0, 100.0], [-100.0, -100.0])
-        }
+            rect_a: crank::Rectangle {center: [0.0, 0.0], size: [128.0; 2]},
+            rect_b: crank::Rectangle {center: [100.0, 75.0], size: [32.0; 2]},
+            line: crank::Line::new([-200.0, 100.0], [-100.0, -100.0]),
+
+            texture_a: crank::Texture::from(crank::Image::decode_png(include_bytes!("res/apple.png")).unwrap()),
+            texture_b: crank::Texture::from(crank::Image::decode_png(include_bytes!("res/banana.png")).unwrap())
+        };
+
+        game.texture_b.set_filter(crank::TextureFilter::Linear);
+
+        game
     }
 
     fn update(&mut self, info: crank::UpdateInfo) {
-        self.draw();
+        if let Some(fps) = self.frame_counter.tick() {
+            self.window.set_title(&format!("FPS: {}", fps));
+        }
 
         if self.window.mouse_down(crank::MouseButton::Right) {
             let mouse = self.mouse_to_world(self.window.get_cursor_position());
@@ -132,6 +143,32 @@ impl crank::Game for Game {
                 self.line.end = mouse;
             }
         }
+
+        use crank::KeyCode;
+
+        if self.window.key_down(KeyCode::W) {
+            self.rect_b.center[1] += info.dt * 100.0;
+        }
+        if self.window.key_down(KeyCode::S) {
+            self.rect_b.center[1] -= info.dt * 100.0;
+        }
+        if self.window.key_down(KeyCode::D) {
+            self.rect_b.center[0] += info.dt * 100.0;
+        }
+        if self.window.key_down(KeyCode::A) {
+            self.rect_b.center[0] -= info.dt * 100.0;
+        }
+
+
+
+        // Check for overlap
+        use crank::Collide;
+        if let Some(overlap) = self.rect_b.overlap(&self.rect_a) {
+            self.rect_b.center = crank::vec2_add(self.rect_b.center, overlap.resolve);
+        }
+
+
+        self.draw();
     }
 
     fn render(&self, renderer: &mut crank::Renderer) {

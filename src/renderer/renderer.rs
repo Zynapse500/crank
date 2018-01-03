@@ -8,8 +8,6 @@ use super::vertex_array::VertexArray;
 
 use super::RenderBatch;
 
-use super::texture::Texture;
-
 
 /// Takes care of OpenGL rendering.
 pub struct Renderer {
@@ -21,10 +19,7 @@ pub struct Renderer {
 
 
     // Location of all the uniforms in the shader
-    uniforms: UniformLocations,
-
-    // Texture that is used when no other is provided
-    default_texture: Texture
+    uniforms: UniformLocations
 }
 
 
@@ -82,9 +77,7 @@ impl Renderer {
             shader,
             vertex_buffer,
 
-            uniforms,
-
-            default_texture: Texture::default()
+            uniforms
         }
     }
 
@@ -110,7 +103,6 @@ impl Renderer {
         // Set shader
         self.shader.bind();
 
-
         // Set uniforms
         let (translation, scale) = batch.view.get_transformation();
 
@@ -121,17 +113,17 @@ impl Renderer {
         }
 
         // Bind texture
-        if let Some(ref texture) = batch.texture {
+        for (texture, mesh) in batch.mesh_indices.iter() {
             texture.bind();
-        } else {
-            self.default_texture.bind();
+
+            let mesh = &batch.meshes[*mesh];
+
+            // Update vertex buffer
+            self.vertex_buffer.upload_vertices(&mesh.vertices);
+            self.vertex_buffer.upload_indices(&mesh.indices);
+
+            // Draw indices
+            self.vertex_buffer.draw_indices(0, mesh.indices.len(), gl::TRIANGLES);
         }
-
-        // Update vertex buffer
-        self.vertex_buffer.upload_vertices(&batch.vertices);
-        self.vertex_buffer.upload_indices(&batch.indices);
-
-        // Draw indices
-        self.vertex_buffer.draw_indices(0, batch.indices.len(), gl::TRIANGLES);
     }
 }
