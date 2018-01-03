@@ -10,10 +10,6 @@ path = "src/lib.rs"
 test = false
 doctest = false
 
-[[bin]]
-name = "Chili"
-path = "image_viewer/main.rs"
-
 # Used for testing the library during it's development
 [[test]]
 name = "dev"
