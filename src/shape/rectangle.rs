@@ -1,7 +1,8 @@
-use ::collision::{Collide, Overlap, RayCast, Intersection};
+use ::collision::{Collide, Overlap, RayCast, Intersection, Sweep, Impact};
 use ::collision::{range_contains, ranges_intersect, ranges_overlap, sign};
 
 
+#[derive(Copy, Clone)]
 pub struct Rectangle {
     pub center: [f32; 2],
     pub size: [f32; 2],
@@ -77,13 +78,10 @@ impl Collide<Rectangle> for Rectangle {
 
 
 impl RayCast for Rectangle {
-    fn ray_intersections(&self, origin: [f32; 2], direction: [f32; 2]) -> Vec<Intersection> {
+    fn ray_intersection(&self, origin: [f32; 2], direction: [f32; 2]) -> Option<Intersection> {
         use std::f32::INFINITY;
         let (range_x, range_y) = self.get_ranges();
         let ranges = [range_x, range_y];
-
-        let mut intersections = Vec::new();
-
 
         /////////////////////////////////////////////////
         // Calculate the time it took to reach a bound //
@@ -107,7 +105,7 @@ impl RayCast for Rectangle {
             } else {
                 // If the ray is going along an axis, make sure it is facing the rectangle
                 if !range_contains(ranges[i], origin[i]) {
-                    return intersections;
+                    return None;
                 }
             }
         }
@@ -121,31 +119,44 @@ impl RayCast for Rectangle {
 
         // Missed if we left the box before we entered on all axes
         if final_times[1] < final_times[0] {
-            return intersections;
+            return None;
         }
 
 
         // Calculate the intersection points and normals
-        for i in 0..2 {
-            let mut intersection = Intersection {
-                time_of_impact: final_times[i],
-                point: ::vec2_add(origin, ::vec2_scale(final_times[i], direction)),
-                normal: [0.0; 2],
-            };
+        let mut intersection = Intersection {
+            time: final_times[0],
+            point: ::vec2_add(origin, ::vec2_scale(final_times[0], direction)),
+            normal: [0.0; 2],
+        };
 
-            // What side was hit?
-            if times[i][i] > times[1 - i][i] {
-                // Left/right
-                intersection.normal[0] = -sign(direction[0]);
-            } else {
-                // Top/bottom
-                intersection.normal[1] = -sign(direction[1]);
-            }
-
-            intersections.push(intersection);
+        // What side was hit?
+        if times[0][0] > times[1][0] {
+            // Left/right
+            intersection.normal[0] = -sign(direction[0]);
+        } else {
+            // Top/bottom
+            intersection.normal[1] = -sign(direction[1]);
         }
 
+        Some(intersection)
+    }
+}
 
-        intersections
+
+impl Sweep<Rectangle> for Rectangle {
+    fn sweep(&self, path: [f32; 2], other: &Rectangle) -> Option<Impact> {
+        let sum = Rectangle {
+            center: other.center,
+            size: [
+                self.size[0] + other.size[0],
+                self.size[1] + other.size[1]
+            ],
+        };
+
+        match sum.ray_intersection(self.center, path) {
+            Some(intersection) => Some(Impact::from(intersection)),
+            None => None
+        }
     }
 }

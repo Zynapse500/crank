@@ -1,5 +1,3 @@
-
-
 /// Debugging macro
 #[allow(unused_macros)]
 macro_rules! print_deb {
@@ -10,6 +8,7 @@ macro_rules! print_deb {
 
 // For window and OpenGL context creation
 extern crate glutin;
+
 use glutin::WindowEvent;
 
 // For offset_of!
@@ -27,14 +26,17 @@ mod gl;
 
 /// Things related to a Game
 mod game;
+
 pub use game::{Game, UpdateInfo};
 
 /// Things related to an App
 mod app;
+
 pub use app::App;
 
 /// Things related to Rendering
 mod renderer;
+
 pub use renderer::{Renderer, RenderBatch};
 pub use renderer::view::*;
 pub use renderer::vertex::Vertex;
@@ -43,6 +45,7 @@ pub use renderer::texture::{Texture, TextureData, TextureFilter};
 
 /// Images
 mod images;
+
 pub use images::{Image, ImageFormat};
 
 
@@ -56,19 +59,25 @@ use window::Window;
 
 /// Linear transformations
 pub mod linear;
+
 pub use linear::*;
 
 
 /// Shapes
 mod shape;
+
 pub use shape::*;
 
 /// Collisions
 mod collision;
 pub use collision::*;
 
+/// Physics
+mod physics;
+pub use physics::*;
+
 /// Used for timing
-use std::time::{Instant};
+use std::time::Instant;
 
 
 /// Various std
@@ -89,10 +98,12 @@ use std::ops::Deref;
 /// * 'height' - Height of the window
 /// * 'title' - Title of the window
 pub fn run_game<GameType: Game>(width: u32, height: u32, title: &str, settings: GameSettings) -> Result<(), String> {
-    let window_settings = window::WindowSettings{
-        width, height, title: title.to_owned(),
+    let window_settings = window::WindowSettings {
+        width,
+        height,
+        title: title.to_owned(),
 
-        vertical_sync: settings.vertical_sync
+        vertical_sync: settings.vertical_sync,
     };
 
     // Create a window
@@ -104,6 +115,7 @@ pub fn run_game<GameType: Game>(width: u32, height: u32, title: &str, settings: 
 
     // Create a renderer
     let mut renderer = Renderer::new(window.borrow().deref());
+    renderer.set_clear_color(settings.clear_color);
 
     // Create game
     let mut game = GameType::setup(WindowHandle::new(window.clone()));
@@ -113,7 +125,6 @@ pub fn run_game<GameType: Game>(width: u32, height: u32, title: &str, settings: 
     // Run the game //
     //////////////////
 
-    renderer.set_clear_color([0.0, 0.0, 0.0, 1.0]);
 
     // Measure the time each iteration of the game loop takes to complete
     let mut last_iteration_time = Instant::now();
@@ -135,11 +146,11 @@ pub fn run_game<GameType: Game>(width: u32, height: u32, title: &str, settings: 
         // Handle all events
         let window_events = window.borrow_mut().poll_events();
         for event in window_events.into_iter() {
-            window::handle_window_event(&window, event, &mut game);
+            window::handle_event(&window, event, &mut game);
         }
 
         // Update game
-        game.update(UpdateInfo{
+        game.update(UpdateInfo {
             dt: elapsed_time_secs
         });
 
@@ -161,7 +172,8 @@ pub fn run_game<GameType: Game>(width: u32, height: u32, title: &str, settings: 
 
 /// Settings for a game
 pub struct GameSettings {
-    pub vertical_sync: bool
+    pub vertical_sync: bool,
+    pub clear_color: [f32; 4]
 }
 
 
@@ -178,10 +190,12 @@ pub struct GameSettings {
 /// * 'height' - Height of the window
 /// * 'title' - Title of the window
 pub fn run_app<AppType: App>(width: u32, height: u32, title: &str, settings: AppSettings) -> Result<(), String> {
-    let window_settings = window::WindowSettings{
-        width, height, title: title.to_owned(),
+    let window_settings = window::WindowSettings {
+        width,
+        height,
+        title: title.to_owned(),
 
-        vertical_sync: false
+        vertical_sync: false,
     };
 
     // Create a window
@@ -214,7 +228,12 @@ pub fn run_app<AppType: App>(width: u32, height: u32, title: &str, settings: App
                 unsafe { gl::Viewport(0, 0, w as i32, h as i32) };
             }
 
-            window::handle_window_event(&window, event.clone(), &mut app);
+            let event = glutin::Event::WindowEvent {
+                window_id: window.borrow().id(),
+                event: event.clone(),
+            };
+
+            window::handle_event(&window, event.clone(), &mut app);
             window::handle_window_file_event(event.clone(), &mut app);
         }
 

@@ -15,7 +15,8 @@ use super::frame_counter::FrameCounter;
 
 pub fn run() {
     let settings = crank::GameSettings {
-        vertical_sync: true,
+        vertical_sync: false,
+        clear_color: [0.3; 4],
     };
 
     crank::run_game::<Game>(900, 900, "Textures", settings).unwrap();
@@ -39,7 +40,7 @@ struct Game {
     texture_size: [f32; 2],
     texture_offset: [f32; 2],
 
-    color_filter: [f32; 4],
+    chili_offset: [f32; 2],
 }
 
 
@@ -51,25 +52,36 @@ impl Game {
         self.update_view();
 
 
-        // println!("chili: {}", self.batch.get_layer_count());
-        self.batch.set_texture(Some(self.chili_texture));
-        self.batch.fill_rectangle(&Rectangle::new([45.0, 20.0], self.texture_size));
-
-        // println!("banana: {}", self.batch.get_layer_count());
         self.batch.set_texture(Some(self.banana_texture));
         self.batch.fill_rectangle(&Rectangle::new([80.0, 0.0], self.texture_size));
 
-        // println!("apple: {}", self.batch.get_layer_count());
+        self.batch.set_texture(Some(self.chili_texture));
+        self.batch.fill_rectangle(&Rectangle::new(self.chili_offset, self.texture_size));
+
         self.batch.set_texture(Some(self.apple_texture));
         self.batch.fill_rectangle(&Rectangle::new(self.texture_offset, self.texture_size));
 
-        // println!("banana: {}", self.batch.get_layer_count());
         self.batch.set_texture(Some(self.banana_texture));
         self.batch.fill_rectangle(&Rectangle::new([-80.0, 0.0], self.texture_size));
 
-        // println!("apple: {}", self.batch.get_layer_count());
         self.batch.set_texture(Some(self.apple_texture));
         self.batch.fill_rectangle(&Rectangle::new([-40.0, 40.0], self.texture_size));
+    }
+
+    fn move_chili(&mut self, dt: f32) {
+        use crank::KeyCode;
+
+        let mut direction = [0.0; 2];
+
+        if self.window.key_down(KeyCode::D) { direction[0] += 1.0; }
+        if self.window.key_down(KeyCode::A) { direction[0] -= 1.0; }
+        if self.window.key_down(KeyCode::W) { direction[1] += 1.0; }
+        if self.window.key_down(KeyCode::S) { direction[1] -= 1.0; }
+
+        if direction[0] != 0.0 || direction[1] != 0.0 {
+            let delta = crank::vec2_scale(256.0 * dt, crank::vec2_normalize(direction));
+            self.chili_offset = crank::vec2_add(self.chili_offset, delta);
+        }
     }
 
     fn update_view(&mut self) {
@@ -80,6 +92,7 @@ impl Game {
 
 impl crank::Game for Game {
     fn setup(window: crank::WindowHandle) -> Self {
+        use crank::{Texture, Image};
         let image = crank::Image::decode(include_bytes!("res/apple.png")).unwrap();
 
         let texture = crank::Texture::from(image.clone());
@@ -95,20 +108,20 @@ impl crank::Game for Game {
             view: crank::CenteredView::default(),
 
             apple_texture: texture,
-            chili_texture: crank::Texture::from(crank::Image::decode(include_bytes!("res/chili.png")).unwrap()),
-            banana_texture: crank::Texture::from(crank::Image::decode(include_bytes!("res/banana.png")).unwrap()),
+            chili_texture: Texture::from(Image::decode(include_bytes!("res/chili.png")).unwrap()),
+            banana_texture: Texture::from(Image::decode(include_bytes!("res/banana.png")).unwrap()),
 
             texture_size: crank::vec2_scale(TEXTURE_SCALE, [image.get_width() as f32, image.get_height() as f32]),
             texture_offset: [0.0, 0.0],
 
-            color_filter: [1.0; 4],
+            chili_offset: [40.0, 40.0]
         }
     }
 
     fn update(&mut self, info: crank::UpdateInfo) {
         self.time += info.dt;
-
         self.texture_offset[1] = self.time.sin() * 40.0;
+        self.move_chili(info.dt);
 
         self.draw();
 
@@ -118,7 +131,6 @@ impl crank::Game for Game {
     }
 
     fn render(&self, renderer: &mut crank::Renderer) {
-        renderer.set_clear_color([0.3; 4]);
         renderer.submit_batch(&self.batch);
     }
 

@@ -4,8 +4,10 @@
 pub fn sign(a: f32) -> f32 {
     if a > 0.0 {
         1.0
-    } else {
+    } else if a < 0.0 {
         -1.0
+    } else {
+        0.0
     }
 }
 

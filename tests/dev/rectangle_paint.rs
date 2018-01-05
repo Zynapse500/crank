@@ -18,6 +18,7 @@ use super::frame_counter::FrameCounter;
 pub fn main() {
     let settings = GameSettings {
         vertical_sync: false,
+        clear_color: [0.0; 4],
     };
 
     crank::run_game::<Game>(512, 512, "Crank", settings).unwrap();

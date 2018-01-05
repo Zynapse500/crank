@@ -28,6 +28,11 @@ mod tests {
     fn collisions() {
         dev::collisions::run()
     }
+
+    #[test]
+    fn platformer() {
+        dev::platformer::main()
+    }
 }
 
 

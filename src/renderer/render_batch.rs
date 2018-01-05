@@ -5,7 +5,7 @@ use super::texture::Texture;
 
 use super::mesh::Mesh;
 
-use ::shape::{RenderShape, Rectangle, Line};
+use ::shape::{RenderShape, Rectangle, Line, Triangle};
 
 use std::f32::consts::PI;
 use std::collections::HashMap;
@@ -156,6 +156,22 @@ impl RenderBatch {
     pub fn draw_circle(&mut self, center: [f32; 2], radius: f32) {
         self.draw_circle_segments(center, radius, 16);
     }
+
+    /// Draw an extruded rectangle in a direction
+    pub fn draw_extruded_rectangle(&mut self, rect: &Rectangle, direction: [f32; 2], width: f32) {
+        let x: f32 = rect.center[0] - rect.size[0] / 2.0;
+        let y: f32 = rect.center[1] - rect.size[1] / 2.0;
+        let w: f32 = rect.size[0];
+        let h: f32 = rect.size[1];
+
+        self.draw_rectangle(rect, width);
+        self.draw_rectangle(&Rectangle { center: ::vec2_add(rect.center, direction), ..*rect }, width);
+
+        self.draw_line(&Line::new([x, y], [x + direction[0], y + direction[1]]), width);
+        self.draw_line(&Line::new([x + w, y], [x + w + direction[0], y + direction[1]]), width);
+        self.draw_line(&Line::new([x, y + h], [x + direction[0], y + h + direction[1]]), width);
+        self.draw_line(&Line::new([x + w, y + h], [x + w + direction[0], y + h + direction[1]]), width);
+    }
 }
 
 
@@ -275,5 +291,43 @@ impl RenderShape for RenderBatch {
         self.draw_line(&Line::new([x + w, y],     [x + w, y + h]), line_width);
         self.draw_line(&Line::new([x + w, y + h], [x,     y + h]), line_width);
         self.draw_line(&Line::new([x,     y + h], [x,     y]),     line_width);
+    }
+
+    fn fill_triangle(&mut self, triangle: &Triangle) {
+        use std::f32::INFINITY;
+        let z = self.advance_layer();
+
+        // Get current mesh
+        let mesh = &mut self.meshes[self.current_mesh];
+        let index_start: u32 = mesh.vertices.len() as u32;
+
+        let points = &triangle.points;
+        let mut ranges = [[INFINITY, -INFINITY]; 2];
+        for point in points.iter() {
+            for axis in 0..2 {
+                if point[axis] < ranges[axis][0] {
+                    ranges[axis][0] = point[axis];
+                }
+                if point[axis] > ranges[axis][1] {
+                    ranges[axis][1] = point[axis];
+                }
+            }
+        }
+
+        for i in 0..3 {
+            let x = points[i][0];
+            let y = points[i][1];
+
+            // Calculate texture coordinates
+            let s = (x - ranges[0][0]) / (ranges[0][1] - ranges[0][0]);
+            let t = (y - ranges[1][0]) / (ranges[1][1] - ranges[1][0]);
+
+            mesh.vertices.push(
+                Vertex::new([x, y, z])
+                    .with_color(self.current_color)
+                    .with_tex_coord([s, 1.0-t])
+            );
+            mesh.indices.push(index_start + i as u32);
+        }
     }
 }

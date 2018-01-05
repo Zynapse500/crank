@@ -1,6 +1,7 @@
 
-use num_traits::{Num, Float};
+use num_traits::{Num, Float, Signed, abs};
 use std::ops::Neg;
+
 
 /// Vector addition
 pub fn vec2_add<T: Copy + Num>(a: [T; 2], b: [T; 2]) -> [T; 2] {
@@ -63,3 +64,8 @@ pub fn vec2_normalize<T: Copy + Float>(a: [T; 2]) -> [T; 2] {
     vec2_scale(T::one() / vec2_length(a), a)
 }
 
+
+/// Absolute value
+pub fn vec2_abs<T: Copy + Signed>(a: [T; 2]) -> [T; 2] {
+    [abs(a[0]), abs(a[1])]
+}

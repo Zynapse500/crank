@@ -16,8 +16,6 @@ void main() {
 
     if (outColor.a == 0) {
         // Don't render fully transparent pixels to the depth buffer
-        gl_FragDepth = 1;
-    } else {
-        gl_FragDepth = frag.position.z;
+        discard;
     }
 }
