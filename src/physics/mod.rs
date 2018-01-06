@@ -1,16 +1,23 @@
-
 use ::collision::{Collide, Sweep, Impact};
+use ::shape::{Rectangle, Bounded};
+
+
+pub trait Body<T>: Sweep<T> + Collide<T> + Collide<Rectangle> {}
+
+impl<T> Body<T> for T
+    where T: Sweep<T> + Collide<T> + Collide<Rectangle>
+{}
+
 
 pub trait PhysicsObject {
-    type C;
+    type CollisionBody: Bounded + Clone;
 
-    fn tick(&mut self, dt: f32, obstacles: &[Box<Sweep<C> + Collide<C>>]) {
+    fn tick(&mut self, dt: f32, obstacles: &[Box<Body<Self::CollisionBody>>]) {
         self.update_velocity(dt);
         self.update_position(dt, obstacles);
     }
 
     fn update_velocity(&mut self, dt: f32) {
-        let position = self.get_position();
         let velocity = self.get_velocity();
         let drag = self.get_drag();
 
@@ -38,9 +45,10 @@ pub trait PhysicsObject {
         ]);
     }
 
-    fn get_collider<'a>(&'a self) -> &'a Self::C;
+    fn get_collider<'a>(&'a self) -> &'a Self::CollisionBody;
 
-    fn update_position(&mut self, dt: f32, obstacles: &[Box<Sweep<C> + Collide<C>>]) {
+
+    fn update_position(&mut self, dt: f32, obstacles: &[Box<Body<Self::CollisionBody>>]) {
         let mut remaining_time = dt;
 
         while remaining_time > 0.0 {
@@ -50,17 +58,34 @@ pub trait PhysicsObject {
                 -velocity[1] * remaining_time,
             ];
 
-            let this_collider = self.get_collider();
 
             let mut first: Option<Impact> = None;
-            for obstacle in obstacles {
-                if let Some(impact) = obstacle.sweep(other_delta, this_collider) {
-                    if let Some(ref mut f) = first {
-                        if impact.time < f.time {
-                            *f = impact;
+            {
+                let this_collider = self.get_collider();
+                let bounding_box: Rectangle = this_collider.bounding_box();
+
+                let broad_phase = Rectangle {
+                    center: [
+                        bounding_box.center[0] - other_delta[0] / 2.0,
+                        bounding_box.center[1] - other_delta[1] / 2.0
+                    ],
+                    size: [
+                        bounding_box.size[0] + other_delta[0].abs(),
+                        bounding_box.size[1] + other_delta[1].abs()
+                    ],
+                };
+
+                for obstacle in obstacles {
+                    if obstacle.intersects(&broad_phase) {
+                        if let Some(impact) = obstacle.sweep(other_delta, this_collider) {
+                            if let Some(ref mut f) = first {
+                                if impact.time < f.time {
+                                    *f = impact;
+                                }
+                            } else {
+                                first = Some(impact.inverse());
+                            }
                         }
-                    } else {
-                        first = Some(impact.inverse());
                     }
                 }
             }
@@ -68,14 +93,14 @@ pub trait PhysicsObject {
             let position = self.get_position();
 
             if let Some(impact) = first {
+                remaining_time *= 1.0 - impact.time;
+
                 self.set_position([
                     position[0] - other_delta[0] * impact.time,
                     position[1] - other_delta[1] * impact.time,
                 ]);
 
                 self.handle_impact(impact);
-
-                remaining_time *= 1.0 - impact.time;
             } else {
                 self.set_position([
                     position[0] - other_delta[0],
@@ -83,6 +108,22 @@ pub trait PhysicsObject {
                 ]);
 
                 remaining_time = 0.0;
+            }
+
+            // TODO: Fix collisions failing on y ~= 4.5
+
+            let this_collider = self.get_collider().clone();
+            for obstacle in obstacles {
+                if let Some(overlap) = obstacle.overlap(&this_collider) {
+                    println!("Overlap!");
+
+                    let position = self.get_position();
+
+                    self.set_position([
+                        position[0] - overlap.resolve[0] * 1.001,
+                        position[1] - overlap.resolve[1] * 1.001,
+                    ]);
+                }
             }
         }
     }
@@ -92,7 +133,9 @@ pub trait PhysicsObject {
 
         let dot = impact.normal[1] * velocity[0] + impact.normal[0] * velocity[1];
 
-        velocity[0] = dot * impact.normal[1];
-        velocity[1] = dot * impact.normal[0];
+        self.set_velocity([
+            dot * impact.normal[1],
+            dot * impact.normal[0]
+        ]);
     }
 }

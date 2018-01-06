@@ -53,6 +53,13 @@ impl Texture {
         }
     }
 
+    /// Create an empty uninitialized texture
+    pub fn empty() -> Texture {
+        Texture {
+            handle: 0
+        }
+    }
+
 
     /// Bind this texture
     pub fn bind(&self) {

@@ -1,5 +1,6 @@
 use ::collision::{Collide, Overlap, RayCast, Intersection, Sweep, Impact};
 use ::collision::{range_contains, ranges_intersect, ranges_overlap, sign};
+use super::{Line, Bounded};
 
 
 #[derive(Copy, Clone)]
@@ -38,6 +39,14 @@ impl Rectangle {
         )
     }
 }
+
+
+impl Bounded for Rectangle {
+    fn bounding_box(&self) -> Rectangle {
+        self.clone()
+    }
+}
+
 
 impl Collide<Rectangle> for Rectangle {
     fn intersects(&self, other: &Rectangle) -> bool {
@@ -154,7 +163,15 @@ impl Sweep<Rectangle> for Rectangle {
             ],
         };
 
-        match sum.ray_intersection(self.center, path) {
+        let line = Line {
+            start: self.center,
+            end: [
+                self.center[0] + path[0],
+                self.center[1] + path[1],
+            ],
+        };
+
+        match sum.line_intersection(&line) {
             Some(intersection) => Some(Impact::from(intersection)),
             None => None
         }

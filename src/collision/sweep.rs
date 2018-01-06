@@ -18,9 +18,3 @@ impl Impact {
         }
     }
 }
-
-impl<T, S: Sweep<T>> Sweep<S> for T {
-    fn sweep(&self, path: [f32; 2], other: &S) -> Option<Impact> {
-
-    }
-}

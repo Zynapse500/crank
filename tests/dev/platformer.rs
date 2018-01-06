@@ -1,8 +1,9 @@
+#[allow(unused_macros)]
 macro_rules! print_deb {
     ($var:expr) => {println!("{}: {:?}", stringify!($var), $var)};
 }
 
-const TILE_SIZE: f32 = 32.0;
+const TILE_SIZE: f32 = 64.0;
 
 
 use super::frame_counter::FrameCounter;
@@ -10,14 +11,20 @@ use super::frame_counter::FrameCounter;
 use crank;
 
 use crank::{WindowHandle, UpdateInfo, Renderer};
-use crank::{RenderBatch, CenteredView};
-use crank::{RenderShape, Rectangle, Line};
-use crank::KeyCode;
-use crank::{Collide, Overlap, RayCast, Intersection};
+use crank::{RenderBatch, CenteredView, Texture, TextureFilter};
+use crank::{RenderShape, Rectangle};
 
-use crank::{Vec2f};
+use crank::Image;
+
+use crank::KeyCode;
+
+use crank::{Collide, Overlap, Impact};
+use crank::{PhysicsObject, Body};
+
+use crank::Vec2f;
 
 use rand;
+use rand::Rng;
 
 use std::collections::HashMap;
 
@@ -41,6 +48,7 @@ pub struct Platformer {
     batch: RenderBatch,
 
     world: World,
+    tile_dictionary: Vec<Tile>,
     player: Player,
 }
 
@@ -57,29 +65,18 @@ impl Platformer {
             self.player.apply_force(delta.into());
         }
 
+        // Gravity
+        self.player.apply_force([0.0, -30.0 * dt]);
+
         if self.window.key_down(KeyCode::Space) { self.player.jump(); }
 
-        self.player.tick(dt, &self.world.get_obstacles());
+        let mut obstacles: Vec<Box<Body<<Player as PhysicsObject>::CollisionBody>>> = Vec::new();
+        for r in self.world.get_obstacles().into_iter() {
+            obstacles.push(Box::new(r));
+        }
 
-        /*
-                let mut i = 0;
-                while let Some(overlap) = self.player.overlap(&self.world) {
-                    self.player.translate(overlap.resolve);
-                    let force = vec2_mul(
-                        vec2_normalize(vec2_abs(overlap.resolve)),
-                        vec2_scale(-1.0, self.player.get_velocity())
-                    );
-                    self.player.apply_force(force);
-
-                    if force[1] > 0.0 {
-                        self.player.set_grounded(true);
-                    }
-
-                    i += 1;
-                    if i > 100 {
-                        break;
-                    }
-                }*/
+        self.player.update(dt);
+        self.player.tick(dt, obstacles.as_slice());
     }
 
     fn draw(&mut self) {
@@ -103,11 +100,31 @@ impl Platformer {
             size: [w, h],
         }
     }
+
+    fn create_world(dictionary: &Vec<Tile>) -> World {
+        World::random(25, 6, dictionary)
+    }
 }
 
 
 impl crank::Game for Platformer {
     fn setup(window: WindowHandle) -> Self {
+        let present_textures_vec: Vec<Texture> = Image::decode(include_bytes!("res/present.png")).unwrap()
+            .split_tiles(4, 4).into_iter().map(|image| image.into()).collect();
+
+        let mut present_textures = [Texture::empty(); 16];
+
+        for i in 0..16 {
+            present_textures[i] = present_textures_vec[i];
+            present_textures[i].set_filter(TextureFilter::Linear);
+        }
+
+        let tile_dictionary = vec![
+            Tile::Open { id: TileId::Air },
+            Tile::Solid4x4 { id: TileId::Present, textures: present_textures }
+        ];
+
+
         let platformer = Platformer {
             running: true,
             window,
@@ -117,8 +134,9 @@ impl crank::Game for Platformer {
 
             batch: RenderBatch::new(),
 
-            world: World::random(25, 25),
-            player: Player::new([12.5, 30.0]),
+            world: Platformer::create_world(&tile_dictionary),
+            tile_dictionary,
+            player: Player::new([12.5, 8.0]),
         };
 
         platformer
@@ -155,11 +173,11 @@ impl crank::WindowEventHandler for Platformer {
             KeyCode::Escape => self.running = false,
 
             KeyCode::R => {
-                self.player = Player::new([12.5, 30.0]);
+                self.player = Player::new([12.5, 8.0]);
             }
 
             KeyCode::M => {
-                self.world = World::random(25, 25);
+                self.world = Platformer::create_world(&self.tile_dictionary);
             }
 
             _ => ()
@@ -169,21 +187,60 @@ impl crank::WindowEventHandler for Platformer {
 
 
 struct World {
-    tiles: HashMap<[u32; 2], Tile>
+    tiles: HashMap<[u32; 2], (Rectangle, Tile)>
 }
 
 impl World {
-    pub fn random(width: usize, height: usize) -> World {
+    pub fn random(width: usize, height: usize, dictionary: &Vec<Tile>) -> World {
         let mut world = World {
             tiles: HashMap::new()
         };
 
+        let len = dictionary.len();
+        let tile_indices = rand::thread_rng().gen_iter()
+            .take(width * height).map(|i: usize| i % len).collect::<Vec<usize>>();
+
         for x in 0..width {
             for y in 0..height {
-                let tile = if rand::random::<bool>() { Tile::Air } else {
-                    Tile::Solid(Rectangle::new([x as f32, y as f32], [1.0; 2]))
+                let index = tile_indices[x + width * y];
+                let mut tile: Tile = dictionary[index];
+
+                let pos = [x as u32, y as u32];
+
+                let rect = Rectangle {
+                    center: [x as f32, y as f32],
+                    size: [1.0; 2],
                 };
-                world.tiles.insert([x as u32, y as u32], tile);
+
+                match tile {
+                    t @ Tile::Open { .. } => (),
+
+                    t @ Tile::Solid { .. } => { world.tiles.insert(pos, (rect, t)); }
+
+                    t @ Tile::Solid4x4 { .. } => {
+                        let mut neighbours = [TileId::Air; 8];
+
+                        let x = x as i32;
+                        let y = y as i32;
+
+                        let mut i = 0;
+                        for ny in (y - 1..y + 2).rev() {
+                            for nx in x - 1..x + 2 {
+                                if nx == x && ny == y { continue; }
+
+                                if 0 <= nx && nx < width as i32 &&
+                                    0 <= ny && ny < height as i32 {
+                                    neighbours[i] = dictionary[tile_indices[nx as usize + width * ny as usize]].id();
+                                }
+
+                                i += 1;
+                            }
+                        }
+
+                        let texture = t.texture_from_neighbours(&neighbours);
+                        world.tiles.insert(pos, (rect, Tile::Solid { id: t.id(), texture }));
+                    }
+                }
             }
         }
 
@@ -191,21 +248,22 @@ impl World {
     }
 
     pub fn draw(&self, batch: &mut RenderBatch) {
-        for (&position, &tile) in self.tiles.iter() {
-            if let Tile::Solid(rect) = tile {
-                batch.set_color([0.0, 0.4, 0.0, 1.0]);
+        for (&position, tile) in self.tiles.iter() {
+            if let &(rect, Tile::Solid { texture, .. }) = tile {
+                batch.set_color([1.0, 1.0, 1.0, 1.0]);
+                batch.set_texture(Some(texture));
                 batch.fill_rectangle(&rect);
             }
         }
+
+        batch.set_texture(None);
     }
 
     pub fn get_obstacles<'a>(&self) -> Vec<Rectangle> {
         let mut rectangles = Vec::new();
 
-        for (&position, &tile) in self.tiles.iter() {
-            if let Tile::Solid(rect) = tile {
-                rectangles.push(rect.clone());
-            }
+        for (&position, tile) in self.tiles.iter() {
+            rectangles.push(tile.0.clone());
         }
 
         rectangles
@@ -213,46 +271,70 @@ impl World {
 }
 
 
-impl Collide<Rectangle> for World {
-    fn intersects(&self, other: &Rectangle) -> bool {
-        for (&position, &tile) in self.tiles.iter() {
-            if let Tile::Solid(rect) = tile {
-                if rect.intersects(other) {
-                    return true;
-                }
-            }
-        }
-
-        false
-    }
-
-    fn overlap(&self, other: &Rectangle) -> Option<Overlap> {
-        let mut total_overlap: Option<Overlap> = None;
-
-        for (&position, &tile) in self.tiles.iter() {
-            if let Tile::Solid(rect) = tile {
-                if let Some(overlap) = rect.overlap(other) {
-                    if let Some(ref mut total) = total_overlap {
-                        total.depth += overlap.depth;
-                        for i in 0..2 {
-                            total.resolve[i] = (total.resolve[i] + overlap.resolve[i]) / 2.0;
-                        }
-                    } else {
-                        total_overlap = Some(overlap);
-                    }
-                }
-            }
-        }
-
-        total_overlap
-    }
+#[derive(Copy, Clone, Eq, PartialEq)]
+enum Tile {
+    Open { id: TileId },
+    Solid { id: TileId, texture: Texture },
+    Solid4x4 { id: TileId, textures: [Texture; 4 * 4] },
 }
 
 
-#[derive(Copy, Clone)]
-enum Tile {
+#[derive(Copy, Clone, Eq, PartialEq)]
+enum TileId {
     Air,
-    Solid(Rectangle),
+    Present,
+}
+
+
+impl Tile {
+    /// Returns the id of a tile
+    pub fn id(&self) -> TileId {
+        match self {
+            &Tile::Open { id, .. } => id,
+            &Tile::Solid { id, .. } => id,
+            &Tile::Solid4x4 { id, .. } => id,
+        }
+    }
+
+    /// Returns the right texture index based on the neighbouring tiles
+    ///
+    /// 'neighbours' layout:
+    /// [0, 1, 2]
+    /// [3,    4]
+    /// [5, 6, 7]
+    pub fn texture_from_neighbours(&self, neighbours: &[TileId]) -> Texture {
+        match self {
+            &Tile::Solid4x4 { id, textures } => {
+                let mut correct = Vec::new();
+                for i in 0..neighbours.len() {
+                    // Ignore diagonals
+                    if i == 0 || i == 2 || i == 5 || i == 7 { continue; }
+                    if neighbours[i] == id {
+                        correct.push(i);
+                    }
+                }
+
+                if correct == [1, 3, 4, 6] { return textures[5]; }
+                if correct == [3, 4, 6] { return textures[1]; }
+                if correct == [1, 3, 6] { return textures[6]; }
+                if correct == [1, 3, 4] { return textures[9]; }
+                if correct == [1, 4, 6] { return textures[4]; }
+                if correct == [4, 6] { return textures[0]; }
+                if correct == [3, 6] { return textures[2]; }
+                if correct == [1, 4] { return textures[8]; }
+                if correct == [1, 3] { return textures[10]; }
+                if correct == [1, 6] { return textures[7]; }
+                if correct == [3, 4] { return textures[13]; }
+                if correct == [6] { return textures[3]; }
+                if correct == [1] { return textures[11]; }
+                if correct == [4] { return textures[12]; }
+                if correct == [3] { return textures[14]; }
+                return textures[15];
+            }
+
+            _ => unimplemented!()
+        }
+    }
 }
 
 
@@ -272,87 +354,14 @@ impl Player {
         }
     }
 
-    pub fn apply_force(&mut self, force: [f32; 2]) {
-        self.velocity[0] += force[0];
-        self.velocity[1] += force[1];
-    }
-
-    pub fn tick(&mut self, dt: f32, obstacles: &[Rectangle]) {
-        self.velocity[0] -= 20.0 * self.velocity[0] * dt;
-        self.velocity[1] -= 1.0 * self.velocity[1] * dt;
-
-        self.velocity[1] -= 20.0 * dt;
-
-
-        let size = self.rect.size;
-        let padded = obstacles.iter().map(|r| {
-            Rectangle {
-                size: crank::vec2_add(size, r.size),
-                ..*r
-            }
-        }).collect::<Vec<Rectangle>>();
-
-
+    pub fn update(&mut self, dt: f32) {
         self.grounded = false;
-        let mut remaining_time = dt;
-        while remaining_time > 0.0 {
-            let delta = Vec2f {
-                x: self.velocity[0] * remaining_time,
-                y: self.velocity[1] * remaining_time,
-            };
-
-            let sweep_start = Vec2f::from(self.rect.center);
-            let sweep_end = sweep_start + delta;
-
-            let line = Line {
-                start: sweep_start.into(),
-                end: sweep_end.into()
-            };
-
-            let broad_phase = line.bounding_box();
-
-            let mut first: Option<Intersection> = None;
-            for rect in padded.iter() {
-                if rect.intersects(&broad_phase) {
-                    if let Some(impact) = rect.line_intersection(&line) {
-                        if let Some(ref mut f) = first {
-                            if impact.time < f.time {
-                                *f = impact;
-                            }
-                        } else {
-                            first = Some(impact);
-                        }
-                    }
-                }
-            }
-
-            if let Some(impact) = first {
-                let time_left = 1.0 - impact.time;
-                remaining_time *= time_left;
-
-                let dot = impact.normal[1] * self.velocity[0] + impact.normal[0] * self.velocity[1];
-
-                self.velocity[0] = dot * impact.normal[1];
-                self.velocity[1] = dot * impact.normal[0];
-
-                self.rect.center[0] = impact.point[0];
-                self.rect.center[1] = impact.point[1];
-
-                if impact.normal[1] == 1.0 {
-                    self.grounded = true;
-                }
-            } else {
-                self.rect.center[0] = sweep_end[0];
-                self.rect.center[1] = sweep_end[1];
-                remaining_time = 0.0;
-            }
-        }
     }
 
     pub fn jump(&mut self) {
         if self.grounded {
             self.grounded = false;
-            self.apply_force([0.0, 14.0]);
+            self.apply_force([0.0, 16.0]);
         }
     }
 
@@ -377,22 +386,45 @@ impl Player {
 }
 
 
-impl<C: Collide<Rectangle>> Collide<C> for Player {
-    fn intersects(&self, other: &C) -> bool {
-        other.intersects(&self.rect)
+impl PhysicsObject for Player {
+    type CollisionBody = Rectangle;
+
+    fn get_position(&self) -> [f32; 2] {
+        self.rect.center
     }
 
-    fn overlap(&self, other: &C) -> Option<Overlap> {
-        let overlap = other.overlap(&self.rect);
-        match overlap {
-            Some(overlap) => {
-                Some(Overlap {
-                    resolve: [-1.0 * overlap.resolve[0], -1.0 * overlap.resolve[1]],
-                    ..overlap
-                })
-            }
+    fn set_position(&mut self, position: [f32; 2]) {
+        self.rect.center = position;
+    }
 
-            None => None
+    fn get_velocity(&self) -> [f32; 2] {
+        self.velocity
+    }
+
+    fn set_velocity(&mut self, velocity: [f32; 2]) {
+        self.velocity = velocity;
+    }
+
+    fn get_drag(&self) -> [f32; 2] {
+        [20.0, 1.0]
+    }
+
+    fn set_drag(&mut self, drag: [f32; 2]) {
+        unimplemented!()
+    }
+
+    fn get_collider<'a>(&'a self) -> &'a Self::CollisionBody {
+        &self.rect
+    }
+
+    fn handle_impact(&mut self, impact: Impact) {
+        let dot = impact.normal[1] * self.velocity[0] + impact.normal[0] * self.velocity[1];
+
+        self.velocity[0] = dot * impact.normal[1];
+        self.velocity[1] = dot * impact.normal[0];
+
+        if impact.normal[1] == 1.0 {
+            self.grounded = true;
         }
     }
 }

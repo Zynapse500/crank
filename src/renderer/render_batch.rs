@@ -87,16 +87,19 @@ impl RenderBatch {
     /// Set the current texture
     pub fn set_texture(&mut self, texture: Option<Texture>) {
         if let Some(texture) = texture {
-            if self.mesh_indices.contains_key(&texture) {
-                self.current_mesh = self.mesh_indices[&texture];
-            } else {
-                let mesh_index = self.mesh_indices.len();
-                self.mesh_indices.insert(texture, mesh_index);
-                while mesh_index >= self.meshes.len() {
-                    self.meshes.push(Mesh::new());
+            {
+                let mesh_index = self.mesh_indices.get(&texture);
+                if let Some(mesh) = mesh_index {
+                    self.current_mesh = mesh.clone();
+                    return;
                 }
-                self.current_mesh = mesh_index;
             }
+            let mesh_index = self.mesh_indices.len();
+            self.mesh_indices.insert(texture, mesh_index);
+            while mesh_index >= self.meshes.len() {
+                self.meshes.push(Mesh::new());
+            }
+            self.current_mesh = mesh_index;
         } else {
             let texture = self.default_texture;
             self.set_texture(Some(texture));
