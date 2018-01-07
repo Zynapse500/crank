@@ -1,4 +1,4 @@
-use ::shape::Rectangle;
+
 
 /// For objects that can collide with each other
 pub trait Collide<C> {

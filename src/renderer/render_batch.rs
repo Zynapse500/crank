@@ -49,6 +49,8 @@ impl RenderBatch {
         }
     }
 
+
+    /// Return the current amount of layers
     pub fn get_layer_count(&self) -> u32 {
         self.layer_count
     }
@@ -76,6 +78,26 @@ impl RenderBatch {
     {
         self.view = Box::new(view);
     }
+
+
+    /// Return the bounds of the view
+    pub fn get_view_bounds(&self) -> Rectangle {
+        let bottom_left = self.view.ndc_to_world([-1.0; 2]);
+        let top_right = self.view.ndc_to_world([1.0; 2]);
+
+        let size = [
+            (top_right[0] - bottom_left[0]).abs(),
+            (top_right[1] - bottom_left[1]).abs(),
+        ];
+
+        let center = [
+            (top_right[0] + bottom_left[0]) / 2.0,
+            (top_right[1] + bottom_left[1]) / 2.0,
+        ];
+
+        Rectangle { center, size }
+    }
+
 
 
     /// Set the current fill color

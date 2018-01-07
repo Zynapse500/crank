@@ -3,7 +3,7 @@ use ::collision::{range_contains, ranges_intersect, ranges_overlap, sign};
 use super::{Line, Bounded};
 
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub struct Rectangle {
     pub center: [f32; 2],
     pub size: [f32; 2],
@@ -125,7 +125,6 @@ impl RayCast for Rectangle {
             if times[0][1] < times[1][1] {times[0][1]} else {times[1][1]}
         ];
 
-
         // Missed if we left the box before we entered on all axes
         if final_times[1] < final_times[0] {
             return None;
@@ -177,3 +176,4 @@ impl Sweep<Rectangle> for Rectangle {
         }
     }
 }
+

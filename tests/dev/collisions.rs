@@ -1,5 +1,8 @@
 use crank;
 
+const SCALE: f32 = 2048.0;
+
+
 use self::super::frame_counter::FrameCounter;
 
 pub fn run() {
@@ -73,18 +76,19 @@ impl Game {
     }
 
     fn draw(&mut self) {
-        use crank::{RenderShape, RayCast, Rectangle, Line};
+        use crank::{RenderShape, RayCast, Line};
 
         self.batch.clear();
         self.batch.set_view(self.view);
 
+        let line_width = 1.0 / SCALE;
 
         /////////////////
         // Rectangle A //
         /////////////////
 
         self.batch.set_color([0.0, 0.0, 1.0, 1.0]);
-        self.batch.draw_rectangle(&self.rect_a, 1.0);
+        self.batch.draw_rectangle(&self.rect_a, line_width);
 
 
         /////////////////
@@ -92,62 +96,7 @@ impl Game {
         /////////////////
 
         self.batch.set_color([0.0, 1.0, 0.0, 1.0]);
-        self.batch.draw_rectangle(&self.rect_b, 1.0);
-
-
-        ///////////
-        // Sweep //
-        ///////////
-
-        let mut sweep_line = Line::new(self.sweep_start, self.rect_b.center);
-
-        let mut remaining_time = 1.0;
-
-        let mut i = 0;
-
-        while remaining_time > 0.0 && i < 100 {
-            let sum = Rectangle {
-                size: crank::vec2_add(self.rect_b.size, self.rect_a.size),
-                center: self.rect_a.center,
-            };
-
-            if let Some(impact) = sum.line_intersection(&sweep_line) {
-                let delta = crank::vec2_sub(sweep_line.end, sweep_line.start);
-
-                self.batch.set_color([1.0, 0.5, 1.0, 1.0]);
-                self.batch.draw_extruded_rectangle(&Rectangle {
-                    center: sweep_line.start,
-                    size: self.rect_b.size,
-                }, crank::vec2_sub(impact.point, sweep_line.start), 1.0);
-
-                self.batch.set_color([0.0, 1.0, 1.0, 1.0]);
-                self.batch.draw_line(&Line::new(
-                    impact.point, crank::vec2_add(impact.point, crank::vec2_scale(25.0, impact.normal))),
-                                     1.0,
-                );
-
-                sweep_line.start = impact.point;
-
-                let time_left = 1.0 - impact.time;
-                remaining_time *= time_left;
-
-                let dot = time_left * (impact.normal[1] * delta[0] + impact.normal[0] * delta[1]);
-                let new_delta = [
-                    impact.normal[1] * dot,
-                    impact.normal[0] * dot
-                ];
-
-                sweep_line.end = crank::vec2_add(new_delta, sweep_line.start);
-            } else {
-                self.batch.set_color([1.0, 0.5, 1.0, 1.0]);
-                self.batch.draw_extruded_rectangle(&Rectangle {
-                    center: sweep_line.start,
-                    size: self.rect_b.size,
-                }, crank::vec2_sub(sweep_line.end, sweep_line.start), 1.0);
-            }
-
-            i+=1;
-        }
+        self.batch.draw_rectangle(&self.rect_b, line_width);
 
 
         //////////
@@ -155,22 +104,21 @@ impl Game {
         //////////
 
         self.batch.set_color([1.0, 0.0, 1.0, 1.0]);
-        self.batch.draw_line(&self.line, 1.0);
+        self.batch.draw_line(&self.line, line_width);
 
-        let intersection = self.rect_a.line_intersection(&self.line);
-        if let Some(first) = intersection {
+        if let Some(first) = self.rect_a.line_intersection(&self.line) {
             // Draw normal
             self.batch.set_color([0.0, 1.0, 1.0, 1.0]);
             self.batch.draw_line(&Line::new(
                 first.point,
-                crank::vec2_add(first.point, crank::vec2_scale(25.0, first.normal))), 1.0);
+                crank::vec2_add(first.point, crank::vec2_scale(0.1, first.normal))), line_width);
 
             // Draw collided line
             self.batch.set_color([1.0, 1.0, 0.0, 1.0]);
-            self.batch.draw_line(&Line::new(self.line.start, first.point), 1.0);
+            self.batch.draw_line(&Line::new(self.line.start, first.point), line_width);
         } else {
             self.batch.set_color([1.0, 1.0, 0.0, 1.0]);
-            self.batch.draw_line(&self.line, 1.0);
+            self.batch.draw_line(&self.line, line_width);
         }
     }
 
@@ -191,11 +139,14 @@ impl crank::Game for Game {
             frame_counter: FrameCounter::new(),
 
             batch: crank::RenderBatch::new(),
-            view: crank::CenteredView { center: [0.0, 0.0], size: [2.0, 2.0] },
+            view: crank::CenteredView { center: [0.0, 4.0], size: [2.0, 2.0] },
 
-            rect_a: crank::Rectangle { center: [0.0, 0.0], size: [128.0; 2] },
-            rect_b: crank::Rectangle { center: [100.0, 75.0], size: [32.0; 2] },
-            line: crank::Line::new([-200.0, 100.0], [-100.0, -100.0]),
+            rect_b: crank::Rectangle { center: [4.0, 5.95], size: [0.5, 0.9] },
+
+            rect_a: crank::Rectangle { center: [0.0, 4.95], size: [1.0 + 0.9; 2] },
+            line: crank::Line::new([0.0, 4.0],
+                                   [0.0, 4.0 +
+                                       ((30.0 * (1.0 / 60.0)) * (1.0 / 60.0))]),
             sweep_start: [150.0; 2],
             accumulated_time: 0.0,
         }
@@ -229,7 +180,7 @@ impl crank::Game for Game {
 
 impl crank::WindowEventHandler for Game {
     fn size_changed(&mut self, width: u32, height: u32) {
-        self.view.size = [width as f32, height as f32];
+        self.view.size = [width as f32 / SCALE, height as f32 / SCALE];
     }
 
 

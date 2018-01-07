@@ -5,6 +5,7 @@ pub trait Sweep<S> {
 }
 
 
+#[derive(Debug)]
 pub struct Impact {
     pub time: f32,
     pub normal: [f32; 2]

@@ -16,9 +16,15 @@ pub trait RayCast {
         // Filter intersections that don't lie on line //
         /////////////////////////////////////////////////
 
-        if let Some(intersection) = ray_intersection {
-            if 0.0 <= intersection.time && intersection.time <= 1.0 {
-                Some(intersection)
+        let len = ::vec2_length(direction);
+        if len > 0.0 {
+            if let Some(intersection) = ray_intersection {
+                // Add some tolerance for rounding errors
+                if 0.0 <= intersection.time && intersection.time <= 1.0 {
+                    Some(intersection)
+                } else {
+                    None
+                }
             } else {
                 None
             }
