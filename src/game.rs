@@ -4,8 +4,10 @@
 use ::{WindowHandle, WindowEventHandler};
 use ::Renderer;
 
+use ::FloatType;
+
 /// What is a game?
-/// - Contains callback functions for rendering and updates to the window
+/// - Contains callback functions for handling rendering and updates to the window
 /// - Handles event callbacks
 
 pub trait Game: WindowEventHandler {
@@ -34,6 +36,6 @@ pub trait Game: WindowEventHandler {
 
 pub struct UpdateInfo {
     // Change in time, in seconds
-    pub dt: f32
+    pub dt: FloatType
 }
 

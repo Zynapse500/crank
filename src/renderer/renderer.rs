@@ -110,8 +110,8 @@ impl Renderer {
         let (translation, scale) = batch.view.get_transformation();
 
         unsafe {
-            gl::Uniform2f(self.uniforms.translation, translation[0], translation[1]);
-            gl::Uniform2f(self.uniforms.scale, scale[0], scale[1]);
+            gl::Uniform2f(self.uniforms.translation, translation[0] as f32, translation[1] as f32);
+            gl::Uniform2f(self.uniforms.scale, scale[0] as f32, scale[1] as f32);
             gl::Uniform1ui(self.uniforms.layers, batch.layer_count);
         }
 

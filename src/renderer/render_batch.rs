@@ -1,6 +1,5 @@
-
 use super::Vertex;
-use super::view::{View, BoundedView};
+use super::view::{View};
 use super::texture::Texture;
 
 use super::mesh::Mesh;
@@ -9,6 +8,8 @@ use ::shape::{RenderShape, Rectangle, Line, Triangle};
 
 use std::f32::consts::PI;
 use std::collections::HashMap;
+
+use ::{FloatType, Vector2};
 
 pub struct RenderBatch {
     pub(super) mesh_indices: HashMap<Texture, usize>,
@@ -21,12 +22,11 @@ pub struct RenderBatch {
 
     default_texture: Texture,
 
-    pub(super) view: Box<View>
+    pub(super) view: Box<View>,
 }
 
 
 impl RenderBatch {
-
     /// Create a new batch
     pub fn new() -> RenderBatch {
         let default_texture = Texture::default();
@@ -45,7 +45,7 @@ impl RenderBatch {
 
             default_texture,
 
-            view: Box::new(BoundedView::default())
+            view: Box::new(Rectangle::default()),
         }
     }
 
@@ -68,7 +68,7 @@ impl RenderBatch {
 
         self.current_color = [1.0; 4];
         self.layer_count = 0;
-        self.view = Box::new(BoundedView::default());
+        self.view = Box::new(Rectangle::default());
     }
 
 
@@ -82,22 +82,17 @@ impl RenderBatch {
 
     /// Return the bounds of the view
     pub fn get_view_bounds(&self) -> Rectangle {
-        let bottom_left = self.view.ndc_to_world([-1.0; 2]);
-        let top_right = self.view.ndc_to_world([1.0; 2]);
+        let mut bottom_left = self.view.ndc_to_world(Vector2::new(-1.0, -1.0));
+        let mut top_right = self.view.ndc_to_world(Vector2::new(1.0, 1.0));
 
-        let size = [
-            (top_right[0] - bottom_left[0]).abs(),
-            (top_right[1] - bottom_left[1]).abs(),
-        ];
+        if bottom_left.y > top_right.y {
+            let tmp = bottom_left.y;
+            bottom_left.y = top_right.y;
+            top_right.y = tmp;
+        }
 
-        let center = [
-            (top_right[0] + bottom_left[0]) / 2.0,
-            (top_right[1] + bottom_left[1]) / 2.0,
-        ];
-
-        Rectangle { center, size }
+        Rectangle { min: bottom_left, max: top_right }
     }
-
 
 
     /// Set the current fill color
@@ -137,11 +132,11 @@ impl RenderBatch {
     }
 
 
-
     /// Draw a circle with segments
-    pub fn draw_circle_segments(&mut self, center: [f32; 2], radius: f32, segments: u32) {
-        let x: f32 = center[0];
-        let y: f32 = center[1];
+    pub fn draw_circle_segments(&mut self, center: Vector2, radius: FloatType, segments: u32) {
+        let x: f32 = center.x as f32;
+        let y: f32 = center.y as f32;
+        let radius = radius as f32;
 
         let z = self.advance_layer();
 
@@ -178,51 +173,55 @@ impl RenderBatch {
     }
 
     /// Draw a circle with automatic number of segments
-    pub fn draw_circle(&mut self, center: [f32; 2], radius: f32) {
-        self.draw_circle_segments(center, radius, 16);
+    pub fn draw_circle(&mut self, center: Vector2, radius: FloatType) {
+        self.draw_circle_segments(center, radius, 32);
     }
 
     /// Draw an extruded rectangle in a direction
-    pub fn draw_extruded_rectangle(&mut self, rect: &Rectangle, direction: [f32; 2], width: f32) {
-        let x: f32 = rect.center[0] - rect.size[0] / 2.0;
-        let y: f32 = rect.center[1] - rect.size[1] / 2.0;
-        let w: f32 = rect.size[0];
-        let h: f32 = rect.size[1];
+    pub fn draw_extruded_rectangle(&mut self, rect: &Rectangle, direction: Vector2, width: FloatType) {
+        let a = Vector2::new(rect.min.x, rect.min.y);
+        let b = Vector2::new(rect.min.x, rect.max.y);
+        let c = Vector2::new(rect.max.x, rect.min.y);
+        let d = Vector2::new(rect.max.x, rect.max.y);
+
+        let mut other_rect = rect.clone();
+        other_rect.min += direction;
+        other_rect.max += direction;
 
         self.draw_rectangle(rect, width);
-        self.draw_rectangle(&Rectangle { center: ::vec2_add(rect.center, direction), ..*rect }, width);
+        self.draw_rectangle(&other_rect, width);
 
-        self.draw_line(&Line::new([x, y], [x + direction[0], y + direction[1]]), width);
-        self.draw_line(&Line::new([x + w, y], [x + w + direction[0], y + direction[1]]), width);
-        self.draw_line(&Line::new([x, y + h], [x + direction[0], y + h + direction[1]]), width);
-        self.draw_line(&Line::new([x + w, y + h], [x + w + direction[0], y + h + direction[1]]), width);
+        self.draw_line(&Line::new(a, a + direction), width);
+        self.draw_line(&Line::new(b, b + direction), width);
+        self.draw_line(&Line::new(c, c + direction), width);
+        self.draw_line(&Line::new(d, d + direction), width);
     }
 }
 
 
 impl RenderShape for RenderBatch {
-    fn draw_line(&mut self, line: &Line, width: f32) {
+    fn draw_line(&mut self, line: &Line, width:  FloatType) {
         // Find the line perpendicular to the line
         let d = line.get_direction();
-        let p = ::vec2_perp(d);
+        let p = d.perpendicular();
 
         // "Radius" of the line
         let r = width / 2.0;
 
         // Calculate scaled perpendicular, used in Minkowski addition
-        let dr = ::vec2_scale(r, d);
-        let pr = ::vec2_scale(r, p);
+        let dr = r * d;
+        let pr = r * p;
 
         // Calculate adjusted endpoints
-        let start = ::vec2_sub(line.start, dr);
-        let end = ::vec2_add(line.end, dr);
+        let start = line.start - dr;
+        let end = line.end + dr;
 
         // Calculate corners of line using Minkowski addition
-        let a = ::vec2_add(start, pr);
-        let b = ::vec2_sub(start, pr);
+        let a = start + pr;
+        let b = start - pr;
 
-        let c = ::vec2_add(end, pr);
-        let d = ::vec2_sub(end, pr);
+        let c = end + pr;
+        let d = end - pr;
 
         let z = self.advance_layer();
 
@@ -234,22 +233,22 @@ impl RenderShape for RenderBatch {
         let index_start: u32 = mesh.vertices.len() as u32;
 
         mesh.vertices.push(
-            Vertex::new([b[0], b[1], z])
+            Vertex::new([b.x as f32, b.y as f32, z])
                 .with_color(self.current_color)
                 .with_tex_coord([0.0, 1.0])
         );
         mesh.vertices.push(
-            Vertex::new([d[0], d[1], z])
+            Vertex::new([d.x as f32, d.y as f32, z])
                 .with_color(self.current_color)
                 .with_tex_coord([1.0, 1.0])
         );
         mesh.vertices.push(
-            Vertex::new([c[0], c[1], z])
+            Vertex::new([c.x as f32, c.y as f32, z])
                 .with_color(self.current_color)
                 .with_tex_coord([1.0, 0.0])
         );
         mesh.vertices.push(
-            Vertex::new([a[0], a[1], z])
+            Vertex::new([a.x as f32, a.y as f32, z])
                 .with_color(self.current_color)
                 .with_tex_coord([0.0, 0.0])
         );
@@ -265,10 +264,10 @@ impl RenderShape for RenderBatch {
     }
 
     fn fill_rectangle(&mut self, rect: &Rectangle) {
-        let x: f32 = rect.center[0] - rect.size[0] / 2.0;
-        let y: f32 = rect.center[1] - rect.size[1] / 2.0;
-        let w: f32 = rect.size[0];
-        let h: f32 = rect.size[1];
+        let x0 = rect.min.x as f32;
+        let y0 = rect.min.y as f32;
+        let x1 = rect.max.x as f32;
+        let y1 = rect.max.y as f32;
 
         let z = self.advance_layer();
 
@@ -278,22 +277,22 @@ impl RenderShape for RenderBatch {
         let index_start: u32 = mesh.vertices.len() as u32;
 
         mesh.vertices.push(
-            Vertex::new([x,     y,     z])
+            Vertex::new([x0, y0, z])
                 .with_color(self.current_color)
                 .with_tex_coord([0.0, 1.0])
         );
         mesh.vertices.push(
-            Vertex::new([x + w, y,     z])
+            Vertex::new([x1, y0, z])
                 .with_color(self.current_color)
                 .with_tex_coord([1.0, 1.0])
         );
         mesh.vertices.push(
-            Vertex::new([x + w, y + h, z])
+            Vertex::new([x1, y1, z])
                 .with_color(self.current_color)
                 .with_tex_coord([1.0, 0.0])
         );
         mesh.vertices.push(
-            Vertex::new([x,     y + h, z])
+            Vertex::new([x0, y1, z])
                 .with_color(self.current_color)
                 .with_tex_coord([0.0, 0.0])
         );
@@ -306,51 +305,38 @@ impl RenderShape for RenderBatch {
         mesh.indices.push(index_start + 0);
     }
 
-    fn draw_rectangle(&mut self, rect: &Rectangle, line_width: f32) {
-        let x: f32 = rect.center[0] - rect.size[0] / 2.0;
-        let y: f32 = rect.center[1] - rect.size[1] / 2.0;
-        let w: f32 = rect.size[0];
-        let h: f32 = rect.size[1];
+    fn draw_rectangle(&mut self, rect: &Rectangle, line_width: FloatType) {
+        let x0 = rect.min.x;
+        let y0 = rect.min.y;
+        let x1 = rect.max.x;
+        let y1 = rect.max.y;
 
-        self.draw_line(&Line::new([x,     y],     [x + w, y]),     line_width);
-        self.draw_line(&Line::new([x + w, y],     [x + w, y + h]), line_width);
-        self.draw_line(&Line::new([x + w, y + h], [x,     y + h]), line_width);
-        self.draw_line(&Line::new([x,     y + h], [x,     y]),     line_width);
+        self.draw_line(&Line::new(Vector2::new(x0, y0), Vector2::new(x1, y0)), line_width);
+        self.draw_line(&Line::new(Vector2::new(x1, y0), Vector2::new(x1, y1)), line_width);
+        self.draw_line(&Line::new(Vector2::new(x1, y1), Vector2::new(x0, y1)), line_width);
+        self.draw_line(&Line::new(Vector2::new(x0, y1), Vector2::new(x0, y0)), line_width);
     }
 
     fn fill_triangle(&mut self, triangle: &Triangle) {
-        use std::f32::INFINITY;
         let z = self.advance_layer();
 
         // Get current mesh
         let mesh = &mut self.meshes[self.current_mesh];
         let index_start: u32 = mesh.vertices.len() as u32;
 
-        let points = &triangle.points;
-        let mut ranges = [[INFINITY, -INFINITY]; 2];
-        for point in points.iter() {
-            for axis in 0..2 {
-                if point[axis] < ranges[axis][0] {
-                    ranges[axis][0] = point[axis];
-                }
-                if point[axis] > ranges[axis][1] {
-                    ranges[axis][1] = point[axis];
-                }
-            }
-        }
+        use shape::Bounded;
+        let extent = triangle.bounding_box();
 
         for i in 0..3 {
-            let x = points[i][0];
-            let y = points[i][1];
+            let point = triangle.points[i];
 
             // Calculate texture coordinates
-            let s = (x - ranges[0][0]) / (ranges[0][1] - ranges[0][0]);
-            let t = (y - ranges[1][0]) / (ranges[1][1] - ranges[1][0]);
+            let tex_coord = (point - extent.min) / (extent.max - extent.min);
 
             mesh.vertices.push(
-                Vertex::new([x, y, z])
+                Vertex::new([point.x as f32, point.y as f32, z])
                     .with_color(self.current_color)
-                    .with_tex_coord([s, 1.0-t])
+                    .with_tex_coord([tex_coord.x as f32, 1.0 - tex_coord.y as f32])
             );
             mesh.indices.push(index_start + i as u32);
         }

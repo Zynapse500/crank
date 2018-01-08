@@ -1,3 +1,6 @@
+
+use ::{IntType, Vector2i, FloatType, Vector2};
+
 use glutin;
 use glutin::{GlContext, GlWindow, EventsLoop, ControlFlow, Event, WindowEvent, DeviceEvent};
 
@@ -30,7 +33,7 @@ pub struct Window {
     focused: bool,
 
     // Position of the cursor
-    cursor_position: [i32; 2],
+    cursor_position: Vector2i,
 }
 
 /// Settings for window creation
@@ -95,7 +98,7 @@ pub trait WindowEventHandler {
     /// * 'x' - The new x-position of the cursor
     /// * 'y' - The new y-position of the cursor
     #[allow(unused_variables)]
-    fn mouse_moved(&mut self, x: i32, y: i32) {}
+    fn mouse_moved(&mut self, x: IntType, y: IntType) {}
 
     /// Called when a mouse button is pressed within the window
     ///
@@ -105,7 +108,7 @@ pub trait WindowEventHandler {
     /// * 'x' - The x-position of the cursor
     /// * 'y' - The y-position of the cursor
     #[allow(unused_variables)]
-    fn mouse_pressed(&mut self, button: MouseButton, x: i32, y: i32) {}
+    fn mouse_pressed(&mut self, button: MouseButton, x: IntType, y: IntType) {}
 
     /// Called when a mouse button is released within the window
     ///
@@ -115,7 +118,7 @@ pub trait WindowEventHandler {
     /// * 'x' - The x-position of the cursor
     /// * 'y' - The y-position of the cursor
     #[allow(unused_variables)]
-    fn mouse_released(&mut self, button: MouseButton, x: i32, y: i32) {}
+    fn mouse_released(&mut self, button: MouseButton, x: IntType, y: IntType) {}
 
     /// Called when the mouse's wheel is moved or a touchpad is scrolling
     ///
@@ -202,7 +205,7 @@ impl Window {
                 pressed_buttons: HashSet::new(),
                 focused: false,
 
-                cursor_position: [settings.width as i32 / 2, settings.height as i32 / 2],
+                cursor_position: [settings.width as IntType / 2, settings.height as IntType / 2].into(),
             }
         )
     }
@@ -426,7 +429,7 @@ impl WindowHandle {
 
 
     /// Returns the current position of the cursor in the window
-    pub fn get_cursor_position(&self) -> [i32; 2] {
+    pub fn get_cursor_position(&self) -> Vector2i {
         self.parent.borrow().cursor_position
     }
 
@@ -453,14 +456,14 @@ impl WindowHandle {
     }
 
 
-    /// Map window coordinates into the range [-1, 1], right and top is positive
-    pub fn window_to_ndc(&self, p: [i32; 2]) -> [f32; 2] {
+    /// Map window coordinates into the range [-1, 1] (right and top are positive)
+    pub fn window_to_ndc(&self, p: Vector2i) -> Vector2 {
         let size = self.parent.borrow().size;
 
-        let px = p[0] as f32 / size[0] as f32 * 2.0 - 1.0;
-        let py = p[1] as f32 / size[1] as f32 * 2.0 - 1.0;
+        let px = p[0] as FloatType / size[0] as FloatType * 2.0 - 1.0;
+        let py = p[1] as FloatType / size[1] as FloatType * 2.0 - 1.0;
 
-        [px, -py]
+        [px, -py].into()
     }
 }
 
@@ -490,11 +493,11 @@ pub fn handle_event<EH: WindowEventHandler>(window: &Rc<RefCell<Window>>, event:
 
                 // Mouse
                 WindowEvent::CursorMoved { position: (x, y), .. } => {
-                    let mx = x.round() as i32;
-                    let my = y.round() as i32;
+                    let mx = x.round() as IntType;
+                    let my = y.round() as IntType;
                     handler.mouse_moved(mx, my);
 
-                    window.borrow_mut().cursor_position = [mx, my];
+                    window.borrow_mut().cursor_position = [mx, my].into();
                 }
                 WindowEvent::MouseInput { state, button, .. } => {
                     let cursor = window.borrow().cursor_position;

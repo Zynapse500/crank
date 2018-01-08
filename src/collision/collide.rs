@@ -1,4 +1,6 @@
 
+use ::{Vector2, FloatType};
+
 
 /// For objects that can collide with each other
 pub trait Collide<C> {
@@ -10,10 +12,11 @@ pub trait Collide<C> {
 }
 
 
+#[derive(Debug)]
 pub struct Overlap {
     /// The depth of the overlap
-    pub depth: f32,
+    pub depth: FloatType,
 
     /// How much and in what direction the objects have to move in order to not overlap anymore
-    pub resolve: [f32; 2]
+    pub resolve: Vector2
 }

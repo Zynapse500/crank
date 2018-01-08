@@ -15,16 +15,6 @@ mod tests {
     use dev;
 
     #[test]
-    fn rectangle_paint() {
-        dev::rectangle_paint::main()
-    }
-
-    #[test]
-    fn textures() {
-        dev::textures::run()
-    }
-
-    #[test]
     fn collisions() {
         dev::collisions::run()
     }

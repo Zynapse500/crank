@@ -3,7 +3,7 @@ macro_rules! print_deb {
     ($var:expr) => {println!("{}: {:?}", stringify!($var), $var)};
 }
 
-const TILE_SIZE: f32 = 128.0;
+const TILE_SIZE: f64 = 128.0;
 const WORLD_SIZE: [usize; 2] = [128, 128];
 
 
@@ -12,7 +12,7 @@ use super::frame_counter::FrameCounter;
 use crank;
 
 use crank::{WindowHandle, UpdateInfo, Renderer};
-use crank::{RenderBatch, CenteredView, Texture, TextureFilter};
+use crank::{RenderBatch, Texture, TextureFilter};
 use crank::{RenderShape, Rectangle};
 
 use crank::Image;
@@ -20,9 +20,9 @@ use crank::Image;
 use crank::KeyCode;
 
 use crank::{Collide};
-use crank::{PhysicsObject, Body};
+use crank::{PhysicsObject};
 
-use crank::Vec2f;
+use crank::Vector2;
 
 use rand;
 use rand::Rng;
@@ -44,10 +44,10 @@ pub struct Platformer {
     window: WindowHandle,
     frame_counter: FrameCounter,
 
-    time_accumulator: f32,
+    time_accumulator: f64,
 
     batch: RenderBatch,
-    view: CenteredView,
+    view: Rectangle,
 
     world: World,
     tile_dictionary: Vec<Tile>,
@@ -56,31 +56,29 @@ pub struct Platformer {
 
 
 impl Platformer {
-    fn tick(&mut self, dt: f32) {
-        let mut direction = Vec2f::new(0.0, 0.0);
+    fn tick(&mut self, dt: f64) {
+        let mut direction = Vector2::new(0.0, 0.0);
         if self.window.key_down(KeyCode::D) { direction.x += 1.0; }
         if self.window.key_down(KeyCode::A) { direction.x -= 1.0; }
         if self.window.key_down(KeyCode::W) { direction.y += 1.0; }
         if self.window.key_down(KeyCode::S) { direction.y -= 1.0; }
 
         if direction.x != 0.0 || direction.y != 0.0 {
-            direction = direction.normalized();
+            direction = direction.normal();
             let delta = 60.0 * dt * direction;
             self.player.apply_force(delta.into());
         }
 
 
         let velocity = self.player.get_velocity();
-        let bounds = Rectangle{
-            center: self.player.get_position(),
-            size: [
-                velocity[0].abs() + 10.0,
-                velocity[1].abs() + 10.0,
-            ]
-        };
+
+        let bounds = Rectangle::centered(
+            self.player.get_position(),
+            velocity.abs() + Vector2::new(10.0, 10.0)
+        );
 
         let world_obstacles = self.world.get_obstacles(bounds);
-        let mut obstacles: Vec<Box<&Body<<Player as PhysicsObject>::CollisionBody>>> = Vec::new();
+        let mut obstacles: Vec<Box<&Collide<<Player as PhysicsObject>::CollisionBody>>> = Vec::new();
         for rect in world_obstacles.iter() {
             obstacles.push(Box::new(rect));
         }
@@ -91,9 +89,8 @@ impl Platformer {
 
         // Move camera
         let player_position = self.player.get_position();
-
-        self.view.center[0] += (player_position[0] - self.view.center[0]) * dt * 4.0;
-        self.view.center[1] += (player_position[1] - self.view.center[1]) * dt * 4.0;
+        let delta = (player_position - self.view.center()) * dt * 4.0;
+        self.view.translate(delta);
     }
 
     fn draw(&mut self) {
@@ -151,17 +148,17 @@ impl crank::Game for Platformer {
 
             batch: RenderBatch::new(),
 
-            view: CenteredView::default(),
+            view: Rectangle::default(),
             world: Platformer::create_world(&tile_dictionary),
             tile_dictionary,
-            player: Player::new([WORLD_SIZE[0] as f32 / 2.0, WORLD_SIZE[1] as f32 / 2.0]),
+            player: Player::new([WORLD_SIZE[0] as f64 / 2.0, WORLD_SIZE[1] as f64 / 2.0].into()),
         };
 
         platformer
     }
 
     fn update(&mut self, info: UpdateInfo) {
-        const UPDATE_RATE: f32 = 1.0 / 240.0;
+        const UPDATE_RATE: f64 = 1.0 / 240.0;
 
         self.time_accumulator += info.dt;
         while self.time_accumulator > UPDATE_RATE {
@@ -191,7 +188,7 @@ impl crank::WindowEventHandler for Platformer {
             KeyCode::Escape => self.running = false,
 
             KeyCode::R => {
-                self.player = Player::new([WORLD_SIZE[0] as f32 / 2.0, WORLD_SIZE[1] as f32 / 2.0]);
+                self.player = Player::new([WORLD_SIZE[0] as f64 / 2.0, WORLD_SIZE[1] as f64 / 2.0].into());
             }
 
             KeyCode::M => {
@@ -203,8 +200,9 @@ impl crank::WindowEventHandler for Platformer {
     }
 
     fn size_changed(&mut self, width: u32, height: u32) {
-        self.view.size[0] = width as f32 / TILE_SIZE;
-        self.view.size[1] = height as f32 / TILE_SIZE;
+        self.view = Rectangle::centered(self.view.center(),
+            Vector2::new(width as f64, height as f64) / TILE_SIZE
+        );
     }
 }
 
@@ -249,13 +247,10 @@ impl World {
 
                 let chunk = Chunk::new();
 
-                let rect = Rectangle {
-                    center: [
-                        (x * w) as f32 + w as f32 / 2.0,
-                        (y * h) as f32 + h as f32 / 2.0,
-                    ],
-                    size: [w as f32 + 1.0, h as f32 + 1.0],
-                };
+                let rect = Rectangle::centered(
+                    [(x * w) as f64 + w as f64 / 2.0, (y * h) as f64 + h as f64 / 2.0,].into(),
+                    [w as f64 + 1.0, h as f64 + 1.0].into()
+                );
 
                 world.chunk_indices.insert([x as i32, y as i32], world.chunks.len());
                 world.chunks.push((rect, chunk));
@@ -346,8 +341,8 @@ impl World {
 
 
     fn set_tile(&mut self, x: i32, y: i32, tile: Tile) {
-        let chunk_x = (x as f32 / CHUNK_SIZE[0] as f32).floor() as i32;
-        let chunk_y = (y as f32 / CHUNK_SIZE[1] as f32).floor() as i32;
+        let chunk_x = (x as f64 / CHUNK_SIZE[0] as f64).floor() as i32;
+        let chunk_y = (y as f64 / CHUNK_SIZE[1] as f64).floor() as i32;
 
         let result = self.chunk_indices.get(&[chunk_x, chunk_y]);
         if let Some(&index) = result {
@@ -368,10 +363,10 @@ impl Chunk {
 
 
     pub fn set_tile(&mut self, x: i32, y: i32, tile: Tile) {
-        let rect = Rectangle {
-            center: [x as f32, y as f32],
-            size: [1.0; 2]
-        };
+        let rect = Rectangle::centered(
+            [x as f64, y as f64].into(),
+            [1.0; 2].into()
+        );
 
         self.tiles.insert([x, y], (rect, tile));
     }
@@ -565,31 +560,22 @@ impl Tile {
 struct Player {
     rect: Rectangle,
 
-    velocity: [f32; 2],
+    velocity: Vector2,
 }
 
 impl Player {
-    pub fn new(position: [f32; 2]) -> Player {
+    pub fn new(position: Vector2) -> Player {
         Player {
-            rect: Rectangle::new(position, [0.5, 0.5]),
-            velocity: [0.0; 2],
+            rect: Rectangle::centered(position, [0.5, 0.5].into()),
+            velocity: [0.0; 2].into(),
         }
     }
 
-    pub fn update(&mut self, dt: f32) {}
-
-    pub fn get_position(&self) -> [f32; 2] {
-        self.rect.center
-    }
-
-    pub fn get_velocity(&self) -> [f32; 2] {
-        self.velocity
-    }
+    pub fn update(&mut self, dt: f64) {}
 
 
-    pub fn translate(&mut self, amount: [f32; 2]) {
-        self.rect.center[0] += amount[0];
-        self.rect.center[1] += amount[1];
+    pub fn translate(&mut self, amount: Vector2) {
+        self.rect.translate(amount);
     }
 
     pub fn draw(&self, batch: &mut RenderBatch) {
@@ -602,27 +588,27 @@ impl Player {
 impl PhysicsObject for Player {
     type CollisionBody = Rectangle;
 
-    fn get_position(&self) -> [f32; 2] {
-        self.rect.center
+    fn get_position(&self) -> Vector2 {
+        self.rect.center()
     }
 
-    fn set_position(&mut self, position: [f32; 2]) {
-        self.rect.center = position;
+    fn set_position(&mut self, position: Vector2) {
+        self.rect = Rectangle::centered(position, self.rect.size());
     }
 
-    fn get_velocity(&self) -> [f32; 2] {
+    fn get_velocity(&self) -> Vector2 {
         self.velocity
     }
 
-    fn set_velocity(&mut self, velocity: [f32; 2]) {
+    fn set_velocity(&mut self, velocity: Vector2) {
         self.velocity = velocity;
     }
 
-    fn get_drag(&self) -> [f32; 2] {
-        [20.0, 20.0]
+    fn get_drag(&self) -> Vector2 {
+        [20.0, 20.0].into()
     }
 
-    fn set_drag(&mut self, drag: [f32; 2]) {
+    fn set_drag(&mut self, drag: Vector2) {
         unimplemented!()
     }
 

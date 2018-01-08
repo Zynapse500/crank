@@ -5,6 +5,9 @@ macro_rules! print_deb {
 }
 
 
+macro_rules! min { ($a:expr, $b:expr) => {if $a < $b {$a} else {$b}}; }
+macro_rules! max { ($a:expr, $b:expr) => {if $a > $b {$a} else {$b}}; }
+
 
 // For window and OpenGL context creation
 extern crate glutin;
@@ -140,7 +143,7 @@ pub fn run_game<GameType: Game>(width: u32, height: u32, title: &str, settings: 
         // Measure the time the last iteration took
         let current_iteration_time = Instant::now();
         let elapsed_time = current_iteration_time - last_iteration_time;
-        let elapsed_time_secs: f32 = elapsed_time.as_secs() as f32 + elapsed_time.subsec_nanos() as f32 / 1e9;
+        let elapsed_time_secs: FloatType = elapsed_time.as_secs() as FloatType + elapsed_time.subsec_nanos() as FloatType / 1e9;
         last_iteration_time = current_iteration_time;
 
         // Handle all events

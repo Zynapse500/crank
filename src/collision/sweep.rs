@@ -1,21 +1,22 @@
 
+use ::{FloatType, Vector2};
 
 pub trait Sweep<S> {
-    fn sweep(&self, path: [f32; 2], other: &S) -> Option<Impact>;
+    fn sweep(&self, path: Vector2, other: &S) -> Option<Impact>;
 }
 
 
 #[derive(Debug)]
 pub struct Impact {
-    pub time: f32,
-    pub normal: [f32; 2]
+    pub time: FloatType,
+    pub normal: Vector2
 }
 
 impl Impact {
     pub fn inverse(self) -> Impact {
         Impact {
             time: self.time,
-            normal: [-self.normal[0], - self.normal[1]],
+            normal: -self.normal,
         }
     }
 }
