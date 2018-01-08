@@ -44,6 +44,7 @@ impl Vector2 {
         }
     }
 
+
     /// Return the direction (normal) of this vector
     pub fn normal(mut self) -> Vector2 {
         let len = self.length();

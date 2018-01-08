@@ -1,6 +1,6 @@
 use crank;
 
-const SCALE: f64 = 32.0;
+const SCALE: f64 = 1.0;
 
 
 use self::super::frame_counter::FrameCounter;
@@ -140,14 +140,13 @@ impl crank::Game for Game {
             frame_counter: FrameCounter::new(),
 
             batch: crank::RenderBatch::new(),
-            view: crank::Rectangle::centered(crank::Vector2::new(0.0, 4.0), crank::Vector2::new(2.0, 2.0)),
+            view: crank::Rectangle::centered(crank::Vector2::new(0.0, 0.0), crank::Vector2::new(2.0, 2.0)),
 
-            rect_b: crank::Rectangle::centered(crank::Vector2::new(4.0, 5.95), crank::Vector2::new(0.5, 0.9)),
+            rect_b: crank::Rectangle::centered(crank::Vector2::new(200.0, 250.0), crank::Vector2::new(25.0, 50.0)),
 
-            rect_a: crank::Rectangle::centered(crank::Vector2::new(0.0, 4.95), crank::Vector2::new(1.9, 1.9)),
-            line: crank::Line::new([0.0, 4.0].into(),
-                                   [0.0, 4.0 +
-                                       ((30.0 * (1.0 / 60.0)) * (1.0 / 60.0))].into()),
+            rect_a: crank::Rectangle::centered(crank::Vector2::new(0.0, 0.0), crank::Vector2::new(200.0, 200.0)),
+            line: crank::Line::new([100.0, 200.0].into(),
+                                   [100.0, 0.0].into()),
             sweep_start: [150.0; 2].into(),
             accumulated_time: 0.0,
         }

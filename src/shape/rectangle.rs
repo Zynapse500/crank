@@ -114,11 +114,20 @@ impl RayCast for Rectangle {
         // Calculate the time it took to reach a bound //
         /////////////////////////////////////////////////
 
+        // Distance from ray origin to bound
+        let delta_min = self.min - origin;
+        let delta_max = self.max - origin;
+
+        // If the ray is going along a bound, return
+        if direction.x == 0.0 && (delta_min.x == 0.0 || delta_max.x == 0.0) { return None; }
+        if direction.y == 0.0 && (delta_min.y == 0.0 || delta_max.y == 0.0) { return None; }
+
+        // Pre-compute division
         let inverse_direction = 1.0 / direction;
 
         // When did the ray intersect the min and max bounds
-        let min_times = (self.min - origin) * inverse_direction;
-        let max_times = (self.max - origin) * inverse_direction;
+        let min_times = (delta_min) * inverse_direction;
+        let max_times = (delta_max) * inverse_direction;
 
         // When did the ray enter and leave each slab
         let entry_times = Vector2::new(
@@ -134,31 +143,6 @@ impl RayCast for Rectangle {
         let near_time = max!(entry_times.x, entry_times.y);
         let far_time = min!(exit_times.x, exit_times.y);
 
-
-        /*
-                // o + dt = p => dt = p - o => t = (p - o) / d
-                let mut times = [[-INFINITY, INFINITY]; 2];
-                for i in 0..2 {
-                    if direction[i] > 0.0 {
-                        let inv = 1.0 / direction[i];
-                        times[i] = [
-                            inv * (ranges[i][0] - origin[i]),
-                            inv * (ranges[i][1] - origin[i])
-                        ];
-                    }  else if direction[i] < 0.0 {
-                        let inv = 1.0 / direction[i];
-                        times[i] = [
-                            inv * (ranges[i][1] - origin[i]),
-                            inv * (ranges[i][0] - origin[i])
-                        ];
-                    } else {
-                        // If the ray is going along an axis, make sure it is facing the rectangle
-                        if !range_contains(ranges[i], origin[i]) {
-                            return None;
-                        }
-                    }
-                }
-        */
 
         // Missed if we left the box before we entered on all axes
         if far_time < near_time {

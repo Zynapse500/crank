@@ -5,6 +5,7 @@ macro_rules! print_deb {
 
 const TILE_SIZE: f64 = 128.0;
 const WORLD_SIZE: [usize; 2] = [128, 128];
+const MOVEMENT_SPEED: f64 = 360.0;
 
 
 use super::frame_counter::FrameCounter;
@@ -20,9 +21,9 @@ use crank::Image;
 use crank::KeyCode;
 
 use crank::{Collide};
-use crank::{PhysicsObject};
+use crank::{PhysicsObject, Body};
 
-use crank::Vector2;
+use crank::{Vector2};
 
 use rand;
 use rand::Rng;
@@ -65,7 +66,7 @@ impl Platformer {
 
         if direction.x != 0.0 || direction.y != 0.0 {
             direction = direction.normal();
-            let delta = 60.0 * dt * direction;
+            let delta = MOVEMENT_SPEED * dt * direction;
             self.player.apply_force(delta.into());
         }
 
@@ -78,7 +79,7 @@ impl Platformer {
         );
 
         let world_obstacles = self.world.get_obstacles(bounds);
-        let mut obstacles: Vec<Box<&Collide<<Player as PhysicsObject>::CollisionBody>>> = Vec::new();
+        let mut obstacles: Vec<Box<&Body<<Player as PhysicsObject>::CollisionBody>>> = Vec::new();
         for rect in world_obstacles.iter() {
             obstacles.push(Box::new(rect));
         }
@@ -89,7 +90,10 @@ impl Platformer {
 
         // Move camera
         let player_position = self.player.get_position();
-        let delta = (player_position - self.view.center()) * dt * 4.0;
+        let delta = player_position - self.view.center();
+        let distance = delta.length();
+
+        let delta = delta * dt * MOVEMENT_SPEED.sqrt() / 2.0;
         self.view.translate(delta);
     }
 
@@ -122,22 +126,47 @@ impl Platformer {
         }*/
     }
 
+    fn create_dictionary() -> Vec<Tile> {
+
+        /*macro_rules! read_bytes {
+            ($path:expr) => {
+
+            };
+        }*/
+
+        vec![
+            Tile::new(TileId::Grass, false, (1, 1), Image::decode(load_file("tests/dev/res/Grass.png").as_slice()).unwrap()),
+            Tile::new(TileId::Sand, false, (1, 1), Image::decode(load_file("tests/dev/res/Sand.png").as_slice()).unwrap()),
+
+            Tile::new(TileId::Water, true, (4, 4), Image::decode(load_file("tests/dev/res/Water.png").as_slice()).unwrap()),
+        ]
+    }
+
     fn create_world(dictionary: &Vec<Tile>) -> World {
         World::random(WORLD_SIZE[0], WORLD_SIZE[1], dictionary)
+    }
+}
+
+fn load_file(path: &str) -> Vec<u8> {
+    use std::fs::{File};
+    use std::io::Read;
+
+    match File::open(path) {
+        Ok(mut file) => {
+            let mut buffer = Vec::new();
+            file.read_to_end(&mut buffer).unwrap();
+
+            buffer
+        }
+
+        Err(e) => panic!(format!("{}", e)),
     }
 }
 
 
 impl crank::Game for Platformer {
     fn setup(window: WindowHandle) -> Self {
-
-        let tile_dictionary = vec![
-            Tile::new(TileId::Grass, false, (1, 1), Image::decode(include_bytes!("res/Grass.png")).unwrap()),
-            Tile::new(TileId::Sand, false, (1, 1), Image::decode(include_bytes!("res/Sand.png")).unwrap()),
-
-            Tile::new(TileId::Water, true, (4, 4), Image::decode(include_bytes!("res/Water.png")).unwrap()),
-        ];
-
+        let tile_dictionary = Platformer::create_dictionary();
 
         let platformer = Platformer {
             running: true,
@@ -158,7 +187,7 @@ impl crank::Game for Platformer {
     }
 
     fn update(&mut self, info: UpdateInfo) {
-        const UPDATE_RATE: f64 = 1.0 / 240.0;
+        const UPDATE_RATE: f64 = 1.0 / 1024.0;
 
         self.time_accumulator += info.dt;
         while self.time_accumulator > UPDATE_RATE {
@@ -195,6 +224,11 @@ impl crank::WindowEventHandler for Platformer {
                 self.world = Platformer::create_world(&self.tile_dictionary);
             }
 
+            KeyCode::T => {
+                self.tile_dictionary = Platformer::create_dictionary();
+                self.world = Platformer::create_world(&self.tile_dictionary);
+            }
+
             _ => ()
         }
     }
@@ -208,7 +242,6 @@ impl crank::WindowEventHandler for Platformer {
 
 
 const CHUNK_SIZE: [usize; 2] = [32; 2];
-
 
 
 struct World {
@@ -403,6 +436,7 @@ impl Chunk {
         obstacles
     }
 }
+
 
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
