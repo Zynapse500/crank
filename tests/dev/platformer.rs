@@ -3,9 +3,9 @@ macro_rules! print_deb {
     ($var:expr) => {println!("{}: {:?}", stringify!($var), $var)};
 }
 
-const TILE_SIZE: f64 = 128.0;
+const TILE_SIZE: f64 = 64.0;
 const WORLD_SIZE: [usize; 2] = [128, 128];
-const MOVEMENT_SPEED: f64 = 360.0;
+const MOVEMENT_SPEED: f64 = 30.0;
 
 
 use super::frame_counter::FrameCounter;
