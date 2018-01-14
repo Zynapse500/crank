@@ -3,7 +3,7 @@ macro_rules! print_deb {
     ($var:expr) => {println!("{}: {:?}", stringify!($var), $var)};
 }
 
-const TILE_SIZE: f64 = 64.0;
+const TILE_SIZE: f64 = 128.0;
 const WORLD_SIZE: [usize; 2] = [128, 128];
 const MOVEMENT_SPEED: f64 = 30.0;
 
@@ -190,16 +190,21 @@ impl crank::Game for Platformer {
         const UPDATE_RATE: f64 = 1.0 / 1024.0;
 
         self.time_accumulator += info.dt;
+        if self.time_accumulator > 1.0 {
+            self.time_accumulator = 0.0;
+        }
+
         while self.time_accumulator > UPDATE_RATE {
             self.tick(UPDATE_RATE);
             self.time_accumulator -= UPDATE_RATE;
         }
 
         if let Some(fps) = self.frame_counter.tick() {
-            self.window.set_title(&format!("FPS: {}   ---   Tiles: {}", fps, WORLD_SIZE[0] * WORLD_SIZE[1]));
+            // self.window.set_title(&format!("FPS: {}   ---   Tiles: {}", fps, WORLD_SIZE[0] * WORLD_SIZE[1]));
         }
 
         self.draw();
+
     }
 
     fn render(&self, renderer: &mut Renderer) {

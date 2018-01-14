@@ -62,6 +62,28 @@ impl Vector2 {
             y: self.x
         }
     }
+
+
+    pub fn round(&self) -> Vector2 {
+        Vector2 {
+            x: self.x.round(),
+            y: self.y.round()
+        }
+    }
+
+    pub fn floor(&self) -> Vector2 {
+        Vector2 {
+            x: self.x.floor(),
+            y: self.y.floor()
+        }
+    }
+
+    pub fn ceil(&self) -> Vector2 {
+        Vector2 {
+            x: self.x.ceil(),
+            y: self.y.ceil()
+        }
+    }
 }
 
 

@@ -149,7 +149,7 @@ pub fn run_game<GameType: Game>(width: u32, height: u32, title: &str, settings: 
         // Handle all events
         let window_events = window.borrow_mut().poll_events();
         for event in window_events.into_iter() {
-            window::handle_event(&window, event, &mut game);
+            window::handle_event(&window, event.clone(), &mut game);
         }
 
         // Update game
