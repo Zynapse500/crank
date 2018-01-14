@@ -91,7 +91,18 @@ impl Texture {
 
 impl Default for Texture {
     fn default() -> Self {
-        Texture::new(1, 1, TextureData::RGBA(&[255, 255, 255, 255]))
+        static mut DEFAULT_TEXTURE: Option<Texture> = None;
+        unsafe {
+            if let Some(texture) = DEFAULT_TEXTURE {
+                texture
+            } else {
+                DEFAULT_TEXTURE = Some(
+                    Texture::new(1, 1, TextureData::RGBA(&[255, 255, 255, 255]))
+                );
+
+                Texture::default()
+            }
+        }
     }
 }
 
