@@ -131,4 +131,12 @@ impl Renderer {
             self.vertex_buffer.draw_indices(0, mesh.indices.len(), gl::TRIANGLES);
         }
     }
+
+
+    /// Clear the depth buffers
+    pub fn clear_depth(&mut self) {
+        unsafe {
+            gl::Clear(gl::DEPTH_BUFFER_BIT);
+        }
+    }
 }
